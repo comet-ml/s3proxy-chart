@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "s3proxy.fullname" . }}
+  labels:
+    {{- include "s3proxy.labels" . | nindent 4 }}
+spec:
+{{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+{{- end }}
+  selector:
+    matchLabels:
+      {{- include "s3proxy.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+{{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+{{- end }}
+      labels:
+        {{- include "s3proxy.selectorLabels" . | nindent 8 }}
+    spec:
+{{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+{{- end }}
+      serviceAccountName: {{ include "s3proxy.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /opt/s3proxy/run-docker-container.sh
+          args:
+            - "--properties"
+            - "/config/s3proxy.properties"
+          envFrom:
+            # Inject all environment variables from the secret
+            - secretRef:
+                name: {{ include "s3proxy.fullname" . }}
+{{- with .Values.extraEnvVars }}
+          env:
+            {{- toYaml . | nindent 12 }}
+{{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+{{- if or (eq .Values.config.backend.provider "filesystem") (eq .Values.config.backend.provider "filesystem-nio2") }}
+  {{- if .Values.persistence.enabled }}
+            - name: data
+              mountPath: {{ .Values.config.backend.filesystem.basedir }}
+  {{- end }}
+{{- end }}
+{{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+{{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "s3proxy.fullname" . }}
+{{- if or (eq .Values.config.backend.provider "filesystem") (eq .Values.config.backend.provider "filesystem-nio2") }}
+  {{- if .Values.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim | default (include "s3proxy.fullname" .) }}
+  {{- end }}
+{{- end }}
+{{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+{{- end }}

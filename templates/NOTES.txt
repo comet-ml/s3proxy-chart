@@ -1,0 +1,68 @@
+1. Get the application URL by running these commands:
+{{- if .Values.ingress.enabled }}
+  {{- range $host := .Values.ingress.hosts }}
+    {{- range .paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+    {{- end }}
+  {{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "s3proxy.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+           You can watch the status of by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "s3proxy.fullname" . }}'
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "s3proxy.fullname" . }} --template "{{ "{{" }} range (index .status.loadBalancer.ingress 0) {{ "}}" }}{{ "{{" }}.{{ "}}" }}{{ "{{" }} end {{ "}}" }}")
+  echo http://$SERVICE_IP:{{ .Values.service.port }}
+{{- else if contains "ClusterIP" .Values.service.type }}
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "s3proxy.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  echo "Visit http://127.0.0.1:8080 to use your application"
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+{{- end }}
+
+2. S3Proxy Configuration:
+   - Backend Provider: {{ .Values.config.backend.provider }}
+   - Authorization: {{ .Values.config.authorization }}
+{{- if .Values.config.cors.enabled }}
+   - CORS: Enabled
+{{- end }}
+{{- if .Values.persistence.enabled }}
+   - Persistence: Enabled ({{ .Values.persistence.size }})
+{{- end }}
+
+3. Testing S3Proxy:
+   Once the service is available, you can test it using AWS CLI or curl:
+
+{{- if eq .Values.config.authorization "none" }}
+   # Anonymous access (no authentication required)
+   curl -X GET http://<SERVICE_URL>/
+{{- else }}
+   # Set up AWS CLI credentials (if authentication is enabled)
+   export AWS_ACCESS_KEY_ID=<your-s3proxy-identity>
+   export AWS_SECRET_ACCESS_KEY=<your-s3proxy-credential>
+
+   # List buckets
+   aws --endpoint-url http://<SERVICE_URL> s3 ls
+
+   # Create a bucket
+   aws --endpoint-url http://<SERVICE_URL> s3 mb s3://test-bucket
+
+   # Upload a file
+   aws --endpoint-url http://<SERVICE_URL> s3 cp /path/to/file s3://test-bucket/
+{{- end }}
+
+4. Monitoring:
+   To check the logs:
+   kubectl logs -n {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "s3proxy.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+
+5. Important Notes:
+{{- if or (eq .Values.config.backend.provider "filesystem") (eq .Values.config.backend.provider "filesystem-nio2") }}
+   - Using filesystem backend at: {{ .Values.config.backend.filesystem.basedir }}
+{{- end }}
+{{- if not .Values.config.identity }}
+   - WARNING: S3Proxy identity not configured. Remember to set s3proxy.identity and s3proxy.credential for authentication.
+{{- end }}
+{{- if and (ne .Values.config.backend.provider "filesystem") (ne .Values.config.backend.provider "filesystem-nio2") (ne .Values.config.backend.provider "transient") (ne .Values.config.backend.provider "transient-nio2") }}
+   - Make sure to configure backend credentials for {{ .Values.config.backend.provider }}
+{{- end }}

@@ -1,0 +1,124 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "s3proxy.fullname" . }}
+  labels:
+    {{- include "s3proxy.labels" . | nindent 4 }}
+data:
+  s3proxy.properties: |
+    # S3Proxy configuration
+    s3proxy.endpoint=http://0.0.0.0:{{ .Values.service.targetPort }}
+    s3proxy.authorization={{ .Values.config.authorization }}
+{{- if .Values.config.virtualHost }}
+    s3proxy.virtual-host={{ .Values.config.virtualHost }}
+{{- end }}
+
+{{- if ne .Values.config.authorization "none" }}
+    # These will be overridden by environment variables from the secret
+    s3proxy.identity=${S3PROXY_IDENTITY}
+    s3proxy.credential=${S3PROXY_CREDENTIAL}
+{{- end }}
+
+{{- if .Values.config.cors.enabled }}
+    # CORS configuration
+  {{- if .Values.config.cors.allowOrigins }}
+    s3proxy.cors-allow-origins={{ join " " .Values.config.cors.allowOrigins }}
+  {{- end }}
+  {{- if .Values.config.cors.allowMethods }}
+    s3proxy.cors-allow-methods={{ join " " .Values.config.cors.allowMethods }}
+  {{- end }}
+  {{- if .Values.config.cors.allowHeaders }}
+    s3proxy.cors-allow-headers={{ join " " .Values.config.cors.allowHeaders }}
+  {{- end }}
+    s3proxy.cors-allow-credential={{ .Values.config.cors.allowCredential }}
+{{- end }}
+
+{{- if .Values.config.buckets.alias }}
+    # Bucket aliasing
+  {{- range $key, $value := .Values.config.buckets.alias }}
+    s3proxy.alias.{{ $key }}={{ $value }}
+  {{- end }}
+{{- end }}
+
+{{- if .Values.config.buckets.locator }}
+    # Bucket locator
+  {{- range $index, $bucket := .Values.config.buckets.locator }}
+    s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
+  {{- end }}
+{{- end }}
+
+{{- if .Values.config.middlewares.readOnly }}
+    # Read-only middleware
+    s3proxy.read-only-blobstore=true
+{{- end }}
+
+{{- if .Values.config.middlewares.eventualConsistency }}
+    # Eventual consistency middleware
+    s3proxy.eventual-consistency=true
+{{- end }}
+
+{{- if .Values.config.middlewares.shardedBackend }}
+    # Sharded backend middleware
+    s3proxy.sharded-blobstore=true
+    s3proxy.sharded-blobstore.prefix=2
+    s3proxy.sharded-blobstore.levels=2
+{{- end }}
+
+{{- if .Values.config.middlewares.largeObjectMocking }}
+    # Large object mocking middleware
+    s3proxy.large-object-mocking=true
+{{- end }}
+
+    # JClouds backend configuration
+    jclouds.provider={{ .Values.config.backend.provider }}
+
+{{- if or (eq .Values.config.backend.provider "filesystem") (eq .Values.config.backend.provider "filesystem-nio2") }}
+    # Filesystem backend
+    jclouds.filesystem.basedir={{ .Values.config.backend.filesystem.basedir }}
+{{- else if or (eq .Values.config.backend.provider "aws-s3") (eq .Values.config.backend.provider "s3") }}
+    # AWS S3 backend
+  {{- if .Values.config.backend.awsS3.region }}
+    jclouds.region={{ .Values.config.backend.awsS3.region }}
+  {{- end }}
+  {{- if .Values.config.backend.awsS3.endpoint }}
+    jclouds.endpoint={{ .Values.config.backend.awsS3.endpoint }}
+  {{- end }}
+    # Credentials will be set via environment variables
+    jclouds.identity=${JCLOUDS_IDENTITY}
+    jclouds.credential=${JCLOUDS_CREDENTIAL}
+    {{- else if or (eq .Values.config.backend.provider "azureblob") (eq .Values.config.backend.provider "azureblob-sdk") }}
+    # Azure Blob backend
+  {{- if .Values.config.backend.azureblob.endpoint }}
+    jclouds.azureblob.endpoint={{ .Values.config.backend.azureblob.endpoint }}
+  {{- end }}
+    # Credentials will be set via environment variables
+    jclouds.identity=${JCLOUDS_IDENTITY}
+    jclouds.credential=${JCLOUDS_CREDENTIAL}
+  {{- if .Values.config.backend.azureblob.sasToken }}
+    jclouds.azureblob.sas=${JCLOUDS_AZURE_SAS}
+  {{- end }}
+{{- else if eq .Values.config.backend.provider "google-cloud-storage" }}
+    # Google Cloud Storage backend
+  {{- if .Values.config.backend.googleCloudStorage.projectId }}
+    jclouds.project-id={{ .Values.config.backend.googleCloudStorage.projectId }}
+  {{- end }}
+    # Credentials will be set via environment variables
+    jclouds.identity=${JCLOUDS_IDENTITY}
+    jclouds.credential=${JCLOUDS_CREDENTIAL}
+{{- else if eq .Values.config.backend.provider "b2" }}
+    # Backblaze B2 backend
+    # Credentials will be set via environment variables
+    jclouds.identity=${JCLOUDS_IDENTITY}
+    jclouds.credential=${JCLOUDS_CREDENTIAL}
+{{- else if eq .Values.config.backend.provider "openstack-swift" }}
+    # OpenStack Swift backend
+  {{- if .Values.config.backend.swift.authUrl }}
+    jclouds.keystone.auth-url={{ .Values.config.backend.swift.authUrl }}
+  {{- end }}
+  {{- if .Values.config.backend.swift.region }}
+    jclouds.region={{ .Values.config.backend.swift.region }}
+  {{- end }}
+    # Credentials will be set via environment variables
+    jclouds.identity=${JCLOUDS_IDENTITY}
+    jclouds.credential=${JCLOUDS_CREDENTIAL}
+{{- end }}

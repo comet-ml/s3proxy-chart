@@ -1,0 +1,150 @@
+# Example values for s3proxy Helm chart
+# This demonstrates a typical configuration using filesystem backend with authentication
+
+# S3Proxy configuration
+config:
+  # Authentication type for clients connecting to S3Proxy
+  # Options: none, aws-v2, aws-v4, aws-v2-or-v4
+  authorization: "aws-v4"
+
+  # Credentials for clients to authenticate to S3Proxy
+  # These should be changed to secure values
+  identity: "admin"
+  credential: "changeme123"
+
+  # Enable CORS for web applications
+  cors:
+    enabled: true
+    allowOrigins:
+      - "https://myapp.example.com"
+    allowMethods:
+      - "GET"
+      - "PUT"
+      - "POST"
+      - "HEAD"
+      - "DELETE"
+    allowHeaders:
+      - "Accept"
+      - "Content-Type"
+      - "Authorization"
+    allowCredential: true
+
+  # Storage backend configuration
+  backend:
+    # Use filesystem backend for local storage
+    provider: "filesystem-nio2"
+    filesystem:
+      basedir: "/data/s3proxy"
+
+    # Example: AWS S3 backend (uncomment to use)
+    # provider: "aws-s3"
+    # awsS3:
+    #   region: "us-west-2"
+    #   accessKeyId: "AKIAIOSFODNN7EXAMPLE"
+    #   secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+
+    # Example: Azure Blob backend (uncomment to use)
+    # provider: "azureblob"
+    # azureblob:
+    #   account: "mystorageaccount"
+    #   key: "base64encodedkey=="
+
+# Persistence settings for filesystem backend
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  size: 100Gi
+  # Specify a storageClass if needed
+  # storageClass: "fast-ssd"
+
+  # Use an existing PVC instead of creating a new one
+  # existingClaim: "my-existing-pvc"
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  # For LoadBalancer type, you may want to specify additional annotations
+  # annotations:
+  #   service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: s3.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: s3proxy-tls
+      hosts:
+        - s3.example.com
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Additional environment variables
+extraEnvVars:
+  - name: JAVA_OPTS
+    value: "-Xmx1g -Xms256m"
+
+# Node selector for pod placement
+# nodeSelector:
+#   disktype: ssd
+
+# Tolerations for pod scheduling
+# tolerations:
+#   - key: "dedicated"
+#     operator: "Equal"
+#     value: "storage"
+#     effect: "NoSchedule"
+
+# Affinity rules
+# affinity:
+#   podAntiAffinity:
+#     requiredDuringSchedulingIgnoredDuringExecution:
+#       - labelSelector:
+#           matchExpressions:
+#             - key: app.kubernetes.io/name
+#               operator: In
+#               values:
+#                 - s3proxy
+#         topologyKey: kubernetes.io/hostname
+
