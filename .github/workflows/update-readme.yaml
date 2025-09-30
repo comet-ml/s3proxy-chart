@@ -14,13 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
 
-    - name: Render helm docs inside the README.md and push changes back to PR branch
-      uses: losisin/helm-docs-github-action@v1
-      with:
-        chart-search-root: .
-        git-push: true
-        git-push-user-name: "CometActions"
-        git-push-user-email: "github-actions@comet.com"
-        git-commit-message: "Update Helm documentation"
+      - name: Render helm docs inside the README.md and push changes back to PR branch
+        uses: losisin/helm-docs-github-action@v1
+        with:
+          chart-search-root: .
+          git-push: true
+          git-push-user-name: "CometActions"
+          git-push-user-email: "github-actions@comet.com"
+          git-commit-message: "Update Helm documentation"
