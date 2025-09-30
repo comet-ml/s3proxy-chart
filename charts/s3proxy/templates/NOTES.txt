@@ -52,7 +52,7 @@
    aws --endpoint-url http://<SERVICE_URL> s3 cp /path/to/file s3://test-bucket/
 
 
-   # You can also use other AWS S3 API compatible clients like MinIO's mc
+   # You can also use other AWS S3 API compatible clients like MinIO's mc.
    mc alias set s3proxy http://<SERVICE_URL> <your-s3proxy-identity> <your-s3proxy-credential>
 
    # List buckets
