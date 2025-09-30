@@ -50,8 +50,6 @@
 
    # Upload a file
    aws --endpoint-url http://<SERVICE_URL> s3 cp /path/to/file s3://test-bucket/
-
-   # You can also use other AWS S3 API compatible clients like MinIO's mc
 {{- end }}
 
 4. Monitoring:
