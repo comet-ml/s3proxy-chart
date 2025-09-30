@@ -1,0 +1,162 @@
+name: Verify Chart Version Update
+run-name: Verify Chart Version Update for PR #${{ github.event.number }} by @${{ github.actor }}
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - values.yaml
+      - Chart.yaml
+      - templates/**
+
+jobs:
+  verify-version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Get current chart version
+        id: current_version
+        run: |
+          CURRENT_VERSION=$(yq '.version' Chart.yaml)
+          echo "Current Chart version: $CURRENT_VERSION"
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Get latest release version
+        id: latest_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Use GitHub API to get the latest release
+          echo "Fetching latest GitHub release..."
+
+          # Get the latest release using GitHub CLI (pre-installed in GitHub Actions)
+          RELEASE_INFO=$(gh api repos/${{ github.repository }}/releases/latest 2>/dev/null || echo "")
+
+          if [ -z "$RELEASE_INFO" ]
+          then
+            echo "No previous GitHub release found. Skipping version check."
+            echo "has_release=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Extract the tag name from the release
+          LATEST_TAG=$(echo "$RELEASE_INFO" | jq -r '.tag_name')
+
+          if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" = "null" ]
+          then
+            echo "No tag found in latest release. Skipping version check."
+            echo "has_release=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Latest release tag: $LATEST_TAG"
+
+          # Checkout the release tag to get its Chart.yaml
+          git checkout "$LATEST_TAG" -- Chart.yaml 2>/dev/null || {
+            echo "Could not find Chart.yaml in release $LATEST_TAG"
+            echo "has_release=false" >> $GITHUB_OUTPUT
+            exit 0
+          }
+
+          # Get the version from the released Chart.yaml
+          RELEASE_VERSION=$(yq '.version' Chart.yaml)
+          echo "Release Chart version: $RELEASE_VERSION"
+          echo "version=$RELEASE_VERSION" >> $GITHUB_OUTPUT
+          echo "has_release=true" >> $GITHUB_OUTPUT
+
+          # Restore the PR's Chart.yaml
+          git checkout HEAD -- Chart.yaml
+
+      - name: Install semver comparison tool
+        if: steps.latest_release.outputs.has_release == 'true'
+        run: |
+          # Install Node.js semver tool for accurate version comparison
+          npm install -g semver
+
+      - name: Compare versions
+        if: steps.latest_release.outputs.has_release == 'true'
+        run: |
+          CURRENT_VERSION="${{ steps.current_version.outputs.version }}"
+          RELEASE_VERSION="${{ steps.latest_release.outputs.version }}"
+
+          echo "Comparing versions:"
+          echo "  Current version: $CURRENT_VERSION"
+          echo "  Release version: $RELEASE_VERSION"
+
+          # Check if current version is valid semantic version
+          if ! semver "$CURRENT_VERSION" >/dev/null 2>&1
+          then
+            echo "❌ Error: Current version '$CURRENT_VERSION' is not a valid semantic version"
+            exit 1
+          fi
+
+          # Check if release version is valid semantic version
+          if ! semver "$RELEASE_VERSION" >/dev/null 2>&1
+          then
+            echo "❌ Error: Release version '$RELEASE_VERSION' is not a valid semantic version"
+            exit 1
+          fi
+
+          # Compare versions - current should be greater than release
+          if semver "$CURRENT_VERSION" -r ">$RELEASE_VERSION"
+          then
+            echo "✅ Version has been properly incremented from $RELEASE_VERSION to $CURRENT_VERSION"
+          else
+            echo "❌ Error: Chart version has not been incremented!"
+            echo "   The current version ($CURRENT_VERSION) must be greater than the released version ($RELEASE_VERSION)"
+            echo ""
+            echo "Please update the 'version' field in Chart.yaml to a version higher than $RELEASE_VERSION"
+            echo "Following semantic versioning rules (MAJOR.MINOR.PATCH):"
+            echo "  - MAJOR: incompatible API changes"
+            echo "  - MINOR: backwards-compatible functionality additions"
+            echo "  - PATCH: backwards-compatible bug fixes"
+            exit 1
+          fi
+
+      - name: Version check summary
+        if: always()
+        run: |
+          # Write to GitHub workflow summary
+          if [ "${{ steps.latest_release.outputs.has_release }}" != "true" ]
+          then
+            echo "## 📋 Chart Version Check Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Status:** No previous GitHub release found - version check skipped" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "ℹ️ This is the first release, so no version comparison was performed." >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ job.status }}" == "success" ]
+          then
+            echo "## 📋 Chart Version Check Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Status:** Chart version has been properly updated" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Version Type | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Previous Release | ${{ steps.latest_release.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Current PR | ${{ steps.current_version.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## 📋 Chart Version Check Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Status:** Chart version needs to be incremented" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Version Type | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Previous Release | ${{ steps.latest_release.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Current PR | ${{ steps.current_version.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Required Action" >> $GITHUB_STEP_SUMMARY
+            echo "Please update the \`version\` field in Chart.yaml to a version higher than **${{ steps.latest_release.outputs.version }}**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Following semantic versioning rules:" >> $GITHUB_STEP_SUMMARY
+            echo "- **MAJOR:** incompatible API changes" >> $GITHUB_STEP_SUMMARY
+            echo "- **MINOR:** backwards-compatible functionality additions" >> $GITHUB_STEP_SUMMARY
+            echo "- **PATCH:** backwards-compatible bug fixes" >> $GITHUB_STEP_SUMMARY
+          fi

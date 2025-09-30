@@ -19,7 +19,7 @@ jobs:
     - name: Render helm docs inside the README.md and push changes back to PR branch
       uses: losisin/helm-docs-github-action@v1
       with:
-        chart-search-root: deployment/helm_chart/opik
+        chart-search-root: .
         git-push: true
         git-push-user-name: "CometActions"
         git-push-user-email: "github-actions@comet.com"
