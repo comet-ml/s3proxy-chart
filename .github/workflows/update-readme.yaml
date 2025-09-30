@@ -1,24 +1,28 @@
 name: Generate helm docs
 run-name: Generate helm docs ${{ github.ref_name }} by @${{ github.actor }}"
 on:
-  workflow_dispatch:
-  pull_request:
+  push:
+    branches:
+      - main
     paths:
       - charts/s3proxy/**
       - README.md.gotmpl
       - README.md
+
+permissions:
+  contents: write
 
 jobs:
   update-readme:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Render helm docs inside the README.md and push changes back to PR branch
-      uses: losisin/helm-docs-github-action@v1
-      with:
-        git-push: true
-        git-push-user-name: "CometActions"
-        git-push-user-email: "github-actions@comet.com"
-        git-commit-message: "Update Helm documentation"
+      - name: Render helm docs inside the README.md and push changes back to PR branch
+        uses: losisin/helm-docs-github-action@v1
+        with:
+          git-push: true
+          git-push-user-name: "CometActions"
+          git-push-user-email: "github-actions@comet.com"
+          git-commit-message: "Update Helm documentation"
