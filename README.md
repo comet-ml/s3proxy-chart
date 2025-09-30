@@ -1,14 +1,8 @@
 # s3proxy
 
-![Version: 0.0.1](https://img.shields.io/badge/Version-0.0.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.7.0](https://img.shields.io/badge/AppVersion-2.7.0-informational?style=flat-square)
+![Version: 0.0.3](https://img.shields.io/badge/Version-0.0.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.7.0](https://img.shields.io/badge/AppVersion-2.7.0-informational?style=flat-square)
 
 A Helm chart for deploying S3Proxy - Access other storage backends via the S3 API
-
-## Maintainers
-
-| Name | Email | Url |
-| ---- | ------ | --- |
-| CRThaze |  |  |
 
 ## Prerequisites
 
@@ -40,8 +34,6 @@ helm install my-s3proxy ./s3proxy -f my-values.yaml
 The following section lists the configurable parameters of the s3proxy chart and their default values.
 
 ### General Parameters
-
-> **Note**: S3Proxy always binds to `0.0.0.0` (all interfaces) within the container. The bind port is controlled by `service.targetPort`.
 
 ## Values
 
