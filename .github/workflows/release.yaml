@@ -13,6 +13,10 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          ref: main
 
       - name: Render helm docs inside the README.md and push changes back to PR branch
         uses: losisin/helm-docs-github-action@v1
@@ -33,6 +37,7 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+          ref: main
 
       - name: Configure Git
         run: |
