@@ -4,6 +4,12 @@
 
 A Helm chart for deploying S3Proxy - Access other storage backends via the S3 API
 
+## Maintainers
+
+| Name | Email | Url |
+| ---- | ------ | --- |
+| CRThaze |  |  |
+
 ## Prerequisites
 
 - Kubernetes 1.19+
