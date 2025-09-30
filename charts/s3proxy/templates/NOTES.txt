@@ -51,7 +51,18 @@
    # Upload a file
    aws --endpoint-url http://<SERVICE_URL> s3 cp /path/to/file s3://test-bucket/
 
+
    # You can also use other AWS S3 API compatible clients like MinIO's mc
+   mc alias set s3proxy http://<SERVICE_URL> <your-s3proxy-identity> <your-s3proxy-credential>
+
+   # List buckets
+   mc ls s3proxy
+
+   # Create a bucket
+   mc mb s3proxy/test-bucket
+
+   # Upload a file
+   mc cp /path/to/file s3proxy/test-bucket/
 {{- end }}
 
 4. Monitoring:

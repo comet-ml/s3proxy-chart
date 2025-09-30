@@ -5,7 +5,8 @@ on:
     branches:
       - main
     paths:
-      - charts/s3proxy/**
+      - charts/s3proxy/Chart.yaml
+      - charts/s3proxy/values.yaml
       - README.md.gotmpl
       - README.md
 
