@@ -1,8 +1,6 @@
 apiVersion: v2
 name: s3proxy
 description: A Helm chart for deploying S3Proxy - Access other storage backends via the S3 API
-maintainers:
-  - name: CRThaze
 
 # A chart can be either an 'application' or a 'library' chart.
 #
