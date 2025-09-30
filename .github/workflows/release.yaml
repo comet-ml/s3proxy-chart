@@ -5,9 +5,7 @@ on:
     branches:
       - main
     paths:
-      - values.yaml
-      - Chart.yaml
-      - templates/**
+      - charts/s3proxy/**
 
 jobs:
   release:
@@ -27,7 +25,6 @@ jobs:
       - name: Run chart-releaser
         uses: bitdeps/helm-oci-charts-releaser@v0.1.3
         with:
-          charts_dir: ..
           oci_registry: ghcr.io/comet-ml
           tag_name_pattern: ''
           oci_username: github-actions
