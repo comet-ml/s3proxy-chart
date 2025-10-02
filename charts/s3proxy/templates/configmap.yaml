@@ -8,12 +8,12 @@ data:
   s3proxy.properties: |
     # S3Proxy configuration
     s3proxy.endpoint=http://0.0.0.0:{{ .Values.service.targetPort }}
-    s3proxy.authorization={{ .Values.config.authorization }}
+    s3proxy.authorization={{ .Values.config.auth.type }}
 {{- if .Values.config.virtualHost }}
     s3proxy.virtual-host={{ .Values.config.virtualHost }}
 {{- end }}
 
-{{- if ne .Values.config.authorization "none" }}
+{{- if ne .Values.config.auth.type "none" }}
     # These will be overridden by environment variables from the secret
     s3proxy.identity=${S3PROXY_IDENTITY}
     s3proxy.credential=${S3PROXY_CREDENTIAL}

@@ -3,14 +3,14 @@
 
 # S3Proxy configuration
 config:
-  # Authentication type for clients connecting to S3Proxy
-  # Options: none, aws-v2, aws-v4, aws-v2-or-v4
-  authorization: "aws-v4"
-
-  # Credentials for clients to authenticate to S3Proxy
-  # These should be changed to secure values
-  identity: "admin"
-  credential: "changeme123"
+  auth:
+    # Authentication type for clients connecting to S3Proxy
+    # Options: none, aws-v2, aws-v4, aws-v2-or-v4
+    type: "aws-v4"
+    # Credentials for clients to authenticate to S3Proxy
+    # These should be changed to secure values
+    identity: "admin"
+    secret: "changeme123"
 
   # Enable CORS for web applications
   cors:

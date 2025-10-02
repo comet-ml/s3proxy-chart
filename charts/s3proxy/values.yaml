@@ -41,9 +41,9 @@ service:
   # -- Kubernetes service type
   type: ClusterIP
   # -- Service port
-  port: 8080
+  port: 9000
   # -- Target port (controls both the container port and S3Proxy bind port)
-  targetPort: 8080
+  targetPort: 9000
   # -- Service annotations
   annotations: {}
 
@@ -102,13 +102,13 @@ tolerations: []
 affinity: {}
 
 config:
-  # -- Authorization type (none, aws-v2, aws-v4, aws-v2-or-v4)
-  authorization: "aws-v4"
-
-  # -- S3 Access Key ID for client authentication
-  identity: ""
-  # -- S3 Secret Access Key for client authentication
-  credential: ""
+  auth:
+    # -- Authorization type (none, aws-v2, aws-v4, aws-v2-or-v4)
+    type: "aws-v4"
+    # -- S3 Access Key ID for client authentication
+    identity: ""
+    # -- S3 Secret Access Key for client authentication
+    secret: ""
 
   # -- Virtual Host configuration
   virtualHost: ""
