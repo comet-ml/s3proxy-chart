@@ -57,8 +57,10 @@ config:
     type: "aws-v4"
     identity: "myaccesskey"
     secret: "mysecretkey"
-  backend:
-    provider: "filesystem-nio2"
+  backends:
+    filesystem:
+      enabled: true
+      nio2: true
     filesystem:
       basedir: "/data/s3proxy"
 
@@ -151,8 +153,10 @@ persistence:
 config:
   auth:
     type: "none"
-  backend:
-    provider: "transient-nio2"  # In-memory storage
+  backends:
+    transient:
+      enabled: true
+      nio2: true  # In-memory storage
 
 persistence:
   enabled: false

@@ -1,4 +1,4 @@
-{{- if and (or (eq .Values.config.backend.provider "filesystem") (eq .Values.config.backend.provider "filesystem-nio2")) .Values.persistence.enabled (not .Values.persistence.existingClaim) -}}
+{{- if and .Values.config.backends.filesystem.enabled .Values.persistence.enabled (not .Values.persistence.existingClaim) -}}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

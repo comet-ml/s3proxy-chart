@@ -22,7 +22,40 @@
 {{- end }}
 
 2. S3Proxy Configuration:
-   - Backend Provider: {{ .Values.config.backend.provider }}
+   - Backend Provider: 
+{{- if .Values.config.backends.filesystem.enabled }}
+  {{- if .Values.config.backends.filesystem.nio2 }}
+     filesystem (filesystem-nio2)
+  {{- else }}
+     filesystem (filesystem)
+  {{- end }}
+{{- else if .Values.config.backends.transient.enabled }}
+  {{- if .Values.config.backends.transient.nio2 }}
+     transient (transient-nio2)
+  {{- else }}
+     transient (transient)
+  {{- end }}
+{{- else if .Values.config.backends.s3.enabled }}
+  {{- if .Values.config.backends.s3.aws }}
+     AWS S3 (aws-s3)
+  {{- else }}
+     Generic S3 (s3)
+  {{- end }}
+{{- else if .Values.config.backends.azureblob.enabled }}
+     Azure Blob ({{ .Values.config.backends.azureblob.provider }})
+{{- else if .Values.config.backends.googleCloudStorage.enabled }}
+     Google Cloud Storage
+{{- else if .Values.config.backends.b2.enabled }}
+     Backblaze B2
+{{- else if .Values.config.backends.openstackSwift.enabled }}
+     OpenStack Swift
+{{- else if .Values.config.backends.rackspaceCloudfiles.enabled }}
+  {{- if eq .Values.config.backends.rackspaceCloudfiles.region "uk" }}
+     Rackspace Cloud Files UK
+  {{- else }}
+     Rackspace Cloud Files US
+  {{- end }}
+{{- end }}
    - Authorization: {{ .Values.config.auth.type }}
 {{- if .Values.config.cors.enabled }}
    - CORS: Enabled
@@ -70,12 +103,22 @@
    kubectl logs -n {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "s3proxy.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
 
 5. Important Notes:
-{{- if or (eq .Values.config.backend.provider "filesystem") (eq .Values.config.backend.provider "filesystem-nio2") }}
-   - Using filesystem backend at: {{ .Values.config.backend.filesystem.basedir }}
+{{- if .Values.config.backends.filesystem.enabled }}
+   - Using filesystem backend at: {{ .Values.config.backends.filesystem.basedir }}
 {{- end }}
 {{- if not .Values.config.auth.identity }}
    - WARNING: S3Proxy identity not configured. Remember to set config.auth.identity and config.auth.secret for authentication.
 {{- end }}
-{{- if and (ne .Values.config.backend.provider "filesystem") (ne .Values.config.backend.provider "filesystem-nio2") (ne .Values.config.backend.provider "transient") (ne .Values.config.backend.provider "transient-nio2") }}
-   - Make sure to configure backend credentials for {{ .Values.config.backend.provider }}
+{{- if .Values.config.backends.s3.enabled }}
+   - Make sure to configure S3 backend credentials
+{{- else if .Values.config.backends.azureblob.enabled }}
+   - Make sure to configure Azure Blob backend credentials
+{{- else if .Values.config.backends.googleCloudStorage.enabled }}
+   - Make sure to configure Google Cloud Storage backend credentials
+{{- else if .Values.config.backends.b2.enabled }}
+   - Make sure to configure Backblaze B2 backend credentials
+{{- else if .Values.config.backends.openstackSwift.enabled }}
+   - Make sure to configure OpenStack Swift backend credentials
+{{- else if .Values.config.backends.rackspaceCloudfiles.enabled }}
+   - Make sure to configure Rackspace Cloud Files backend credentials
 {{- end }}

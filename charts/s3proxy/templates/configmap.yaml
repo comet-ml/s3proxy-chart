@@ -1,11 +1,4 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "s3proxy.fullname" . }}
-  labels:
-    {{- include "s3proxy.labels" . | nindent 4 }}
-data:
-  s3proxy.properties: |
+{{- define "s3proxy.main.config" -}}
     # S3Proxy configuration
     s3proxy.endpoint=http://0.0.0.0:{{ .Values.service.targetPort }}
     s3proxy.authorization={{ .Values.config.auth.type }}
@@ -14,9 +7,8 @@ data:
 {{- end }}
 
 {{- if ne .Values.config.auth.type "none" }}
-    # These will be overridden by environment variables from the secret
-    s3proxy.identity=${S3PROXY_IDENTITY}
-    s3proxy.credential=${S3PROXY_CREDENTIAL}
+    # Authentication credentials will be merged from the secret properties file
+    # s3proxy.identity and s3proxy.credential will be provided by the secret
 {{- end }}
 
 {{- if .Values.config.cors.enabled }}
@@ -68,57 +60,122 @@ data:
     # Large object mocking middleware
     s3proxy.large-object-mocking=true
 {{- end }}
+{{- end }}
 
-    # JClouds backend configuration
-    jclouds.provider={{ .Values.config.backend.provider }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "s3proxy.fullname" . }}
+  labels:
+    {{- include "s3proxy.labels" . | nindent 4 }}
+data:
+{{- if .Values.config.backends.filesystem.enabled }}
+  backend-filesystem.properties: |
+{{- include "s3proxy.main.config" . | nindent 4 }}
 
-{{- if or (eq .Values.config.backend.provider "filesystem") (eq .Values.config.backend.provider "filesystem-nio2") }}
-    # Filesystem backend
-    jclouds.filesystem.basedir={{ .Values.config.backend.filesystem.basedir }}
-{{- else if or (eq .Values.config.backend.provider "aws-s3") (eq .Values.config.backend.provider "s3") }}
-    # AWS S3 backend
-  {{- if .Values.config.backend.awsS3.region }}
-    jclouds.region={{ .Values.config.backend.awsS3.region }}
+    # Filesystem backend configuration
+  {{- if .Values.config.backends.filesystem.nio2 }}
+    jclouds.provider=filesystem-nio2
+  {{- else }}
+    jclouds.provider=filesystem
   {{- end }}
-  {{- if .Values.config.backend.awsS3.endpoint }}
-    jclouds.endpoint={{ .Values.config.backend.awsS3.endpoint }}
+    jclouds.filesystem.basedir={{ .Values.config.backends.filesystem.basedir }}
+{{- end }}
+
+{{- if .Values.config.backends.transient.enabled }}
+  backend-transient.properties: |
+{{- include "s3proxy.main.config" . | nindent 4 }}
+
+    # Transient backend configuration
+  {{- if .Values.config.backends.transient.nio2 }}
+    jclouds.provider=transient-nio2
+  {{- else }}
+    jclouds.provider=transient
   {{- end }}
-    # Credentials will be set via environment variables
-    jclouds.identity=${JCLOUDS_IDENTITY}
-    jclouds.credential=${JCLOUDS_CREDENTIAL}
-    {{- else if or (eq .Values.config.backend.provider "azureblob") (eq .Values.config.backend.provider "azureblob-sdk") }}
-    # Azure Blob backend
-  {{- if .Values.config.backend.azureblob.endpoint }}
-    jclouds.azureblob.endpoint={{ .Values.config.backend.azureblob.endpoint }}
+{{- end }}
+
+{{- if .Values.config.backends.s3.enabled }}
+  backend-s3.properties: |
+{{- include "s3proxy.main.config" . | nindent 4 }}
+
+    # S3 backend configuration
+  {{- if .Values.config.backends.s3.aws }}
+    jclouds.provider=aws-s3
+  {{- else }}
+    jclouds.provider=s3
   {{- end }}
-    # Credentials will be set via environment variables
-    jclouds.identity=${JCLOUDS_IDENTITY}
-    jclouds.credential=${JCLOUDS_CREDENTIAL}
-  {{- if .Values.config.backend.azureblob.sasToken }}
-    jclouds.azureblob.sas=${JCLOUDS_AZURE_SAS}
+  {{- if .Values.config.backends.s3.region }}
+    jclouds.region={{ .Values.config.backends.s3.region }}
   {{- end }}
-{{- else if eq .Values.config.backend.provider "google-cloud-storage" }}
-    # Google Cloud Storage backend
-  {{- if .Values.config.backend.googleCloudStorage.projectId }}
-    jclouds.project-id={{ .Values.config.backend.googleCloudStorage.projectId }}
+  {{- if .Values.config.backends.s3.endpoint }}
+    jclouds.endpoint={{ .Values.config.backends.s3.endpoint }}
   {{- end }}
-    # Credentials will be set via environment variables
-    jclouds.identity=${JCLOUDS_IDENTITY}
-    jclouds.credential=${JCLOUDS_CREDENTIAL}
-{{- else if eq .Values.config.backend.provider "b2" }}
-    # Backblaze B2 backend
-    # Credentials will be set via environment variables
-    jclouds.identity=${JCLOUDS_IDENTITY}
-    jclouds.credential=${JCLOUDS_CREDENTIAL}
-{{- else if eq .Values.config.backend.provider "openstack-swift" }}
-    # OpenStack Swift backend
-  {{- if .Values.config.backend.swift.authUrl }}
-    jclouds.keystone.auth-url={{ .Values.config.backend.swift.authUrl }}
+    # Credentials will be merged from the secret properties file
+    # jclouds.identity and jclouds.credential will be provided by the secret
+{{- end }}
+
+{{- if .Values.config.backends.azureblob.enabled }}
+  backend-azureblob.properties: |
+{{- include "s3proxy.main.config" . | nindent 4 }}
+
+    # Azure Blob backend configuration
+    jclouds.provider={{ .Values.config.backends.azureblob.provider }}
+  {{- if .Values.config.backends.azureblob.endpoint }}
+    jclouds.azureblob.endpoint={{ .Values.config.backends.azureblob.endpoint }}
   {{- end }}
-  {{- if .Values.config.backend.swift.region }}
-    jclouds.region={{ .Values.config.backend.swift.region }}
+    # Credentials will be merged from the secret properties file
+    # jclouds.identity, jclouds.credential, and jclouds.azureblob.sas will be provided by the secret
+{{- end }}
+
+{{- if .Values.config.backends.googleCloudStorage.enabled }}
+  backend-google-cloud-storage.properties: |
+{{- include "s3proxy.main.config" . | nindent 4 }}
+
+    # Google Cloud Storage backend configuration
+    jclouds.provider=google-cloud-storage
+  {{- if .Values.config.backends.googleCloudStorage.projectId }}
+    jclouds.project-id={{ .Values.config.backends.googleCloudStorage.projectId }}
   {{- end }}
-    # Credentials will be set via environment variables
-    jclouds.identity=${JCLOUDS_IDENTITY}
-    jclouds.credential=${JCLOUDS_CREDENTIAL}
+    # Credentials will be merged from the secret properties file
+    # jclouds.identity and jclouds.credential will be provided by the secret
+{{- end }}
+
+{{- if .Values.config.backends.b2.enabled }}
+  backend-b2.properties: |
+{{- include "s3proxy.main.config" . | nindent 4 }}
+
+    # Backblaze B2 backend configuration
+    jclouds.provider=b2
+    # Credentials will be merged from the secret properties file
+    # jclouds.identity and jclouds.credential will be provided by the secret
+{{- end }}
+
+{{- if .Values.config.backends.openstackSwift.enabled }}
+  backend-openstack-swift.properties: |
+{{- include "s3proxy.main.config" . | nindent 4 }}
+
+    # OpenStack Swift backend configuration
+    jclouds.provider=openstack-swift
+  {{- if .Values.config.backends.openstackSwift.authUrl }}
+    jclouds.keystone.auth-url={{ .Values.config.backends.openstackSwift.authUrl }}
+  {{- end }}
+  {{- if .Values.config.backends.openstackSwift.region }}
+    jclouds.region={{ .Values.config.backends.openstackSwift.region }}
+  {{- end }}
+    # Credentials will be merged from the secret properties file
+    # jclouds.identity and jclouds.credential will be provided by the secret
+{{- end }}
+
+{{- if .Values.config.backends.rackspaceCloudfiles.enabled }}
+  backend-rackspace-cloudfiles.properties: |
+{{- include "s3proxy.main.config" . | nindent 4 }}
+
+    # Rackspace Cloud Files backend configuration
+  {{- if eq .Values.config.backends.rackspaceCloudfiles.region "uk" }}
+    jclouds.provider=rackspace-cloudfiles-uk
+  {{- else }}
+    jclouds.provider=rackspace-cloudfiles-us
+  {{- end }}
+    # Credentials will be merged from the secret properties file
+    # jclouds.identity and jclouds.credential will be provided by the secret
 {{- end }}
