@@ -1,6 +1,6 @@
 # s3proxy
 
-![Version: 0.0.3](https://img.shields.io/badge/Version-0.0.3-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.7.0](https://img.shields.io/badge/AppVersion-2.7.0-informational?style=flat-square)
+![Version: 0.0.4](https://img.shields.io/badge/Version-0.0.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.7.0](https://img.shields.io/badge/AppVersion-2.7.0-informational?style=flat-square)
 
 A Helm chart for deploying S3Proxy - Access other storage backends via the S3 API
 
@@ -44,29 +44,48 @@ The following section lists the configurable parameters of the s3proxy chart and
 | autoscaling.maxReplicas | int | `100` | Maximum number of replicas |
 | autoscaling.minReplicas | int | `1` | Minimum number of replicas |
 | autoscaling.targetCPUUtilizationPercentage | int | `80` | Target CPU utilization percentage |
-| config.authorization | string | `"aws-v4"` | Authorization type (none, aws-v2, aws-v4, aws-v2-or-v4) |
-| config.backend.awsS3.accessKeyId | string | `""` | AWS Access Key ID for backend |
-| config.backend.awsS3.endpoint | string | `""` | S3 endpoint |
-| config.backend.awsS3.region | string | `""` | AWS region |
-| config.backend.awsS3.secretAccessKey | string | `""` | AWS Secret Access Key for backend |
-| config.backend.azureblob.account | string | `""` | Storage account name |
-| config.backend.azureblob.endpoint | string | `""` | Azure endpoint |
-| config.backend.azureblob.key | string | `""` | Storage account key |
-| config.backend.azureblob.sasToken | string | `""` | SAS token |
-| config.backend.b2.account | string | `""` | B2 account ID |
-| config.backend.b2.applicationKey | string | `""` | B2 application key |
-| config.backend.filesystem.basedir | string | `"/data/s3proxy"` | Base directory for filesystem backend |
-| config.backend.googleCloudStorage.clientEmail | string | `""` | Service account email |
-| config.backend.googleCloudStorage.clientId | string | `""` | Client ID |
-| config.backend.googleCloudStorage.privateKey | string | `""` | Private key |
-| config.backend.googleCloudStorage.privateKeyId | string | `""` | Private key ID |
-| config.backend.googleCloudStorage.projectId | string | `""` | GCP project ID |
-| config.backend.provider | string | `"filesystem-nio2"` | Backend provider type (filesystem, filesystem-nio2, transient, transient-nio2, aws-s3, s3, azureblob, azureblob-sdk, b2, google-cloud-storage, openstack-swift, rackspace-cloudfiles-uk, rackspace-cloudfiles-us) |
-| config.backend.swift.authUrl | string | `""` | Authentication URL |
-| config.backend.swift.password | string | `""` | Password |
-| config.backend.swift.region | string | `""` | Region |
-| config.backend.swift.tenantName | string | `""` | Tenant name |
-| config.backend.swift.userName | string | `""` | Username |
+| config.auth.identity | string | `""` | S3 Access Key ID for client authentication |
+| config.auth.secret | string | `""` | S3 Secret Access Key for client authentication |
+| config.auth.type | string | `"aws-v4"` | Authorization type (none, aws-v2, aws-v4, aws-v2-or-v4) |
+| config.backends.azureblob.account | string | `""` | Storage account name |
+| config.backends.azureblob.enabled | bool | `false` | Enable Azure Blob Storage backend |
+| config.backends.azureblob.endpoint | string | `""` | Azure endpoint |
+| config.backends.azureblob.key | string | `""` | Storage account key |
+| config.backends.azureblob.provider | string | `"azureblob"` | Provider type (azureblob or azureblob-sdk) |
+| config.backends.azureblob.sasToken | string | `""` | SAS token |
+| config.backends.b2.account | string | `""` | B2 account ID |
+| config.backends.b2.applicationKey | string | `""` | B2 application key |
+| config.backends.b2.enabled | bool | `false` | Enable Backblaze B2 backend |
+| config.backends.filesystem.basedir | string | `"/data/s3proxy"` | Base directory for filesystem backend |
+| config.backends.filesystem.enabled | bool | `true` | Enable filesystem backend |
+| config.backends.filesystem.nio2 | bool | `true` | Use NIO2 implementation (filesystem-nio2) instead of standard filesystem |
+| config.backends.googleCloudStorage.clientEmail | string | `""` | Service account email or user email (used with both privateKey and jsonCredentials methods) |
+| config.backends.googleCloudStorage.enabled | bool | `false` | Enable Google Cloud Storage backend |
+| config.backends.googleCloudStorage.jsonCredentials | object | `{"enabled":false,"existingSecret":"","jsonContent":"","secretKey":"credentials.json"}` | JSON credentials configuration |
+| config.backends.googleCloudStorage.jsonCredentials.enabled | bool | `false` | Use JSON credentials file instead of privateKey |
+| config.backends.googleCloudStorage.jsonCredentials.existingSecret | string | `""` | Name of existing secret containing GCP credentials JSON |
+| config.backends.googleCloudStorage.jsonCredentials.jsonContent | string | `""` | JSON content for creating a new secret (takes precedence over existingSecret) |
+| config.backends.googleCloudStorage.jsonCredentials.secretKey | string | `"credentials.json"` | Key in the secret containing the JSON credentials (default: credentials.json) |
+| config.backends.googleCloudStorage.privateKey | string | `""` | Private key (only used when jsonCredentials.enabled is false) |
+| config.backends.googleCloudStorage.projectId | string | `""` | GCP project ID |
+| config.backends.openstackSwift.authUrl | string | `""` | Authentication URL |
+| config.backends.openstackSwift.enabled | bool | `false` | Enable OpenStack Swift backend |
+| config.backends.openstackSwift.password | string | `""` | Password |
+| config.backends.openstackSwift.region | string | `""` | Region |
+| config.backends.openstackSwift.tenantName | string | `""` | Tenant name |
+| config.backends.openstackSwift.userName | string | `""` | Username |
+| config.backends.rackspaceCloudfiles.apiKey | string | `""` | API key |
+| config.backends.rackspaceCloudfiles.enabled | bool | `false` | Enable Rackspace Cloud Files backend |
+| config.backends.rackspaceCloudfiles.region | string | `"us"` | Region (uk or us) |
+| config.backends.rackspaceCloudfiles.userName | string | `""` | Username |
+| config.backends.s3.accessKeyId | string | `""` | S3 Access Key ID for backend |
+| config.backends.s3.aws | bool | `true` | Use AWS-specific S3 provider (aws-s3) instead of generic S3 provider |
+| config.backends.s3.enabled | bool | `false` | Enable S3 backend |
+| config.backends.s3.endpoint | string | `""` | S3 endpoint |
+| config.backends.s3.region | string | `""` | AWS region |
+| config.backends.s3.secretAccessKey | string | `""` | S3 Secret Access Key for backend |
+| config.backends.transient.enabled | bool | `false` | Enable transient (in-memory) backend |
+| config.backends.transient.nio2 | bool | `true` | Use NIO2 implementation (transient-nio2) instead of standard transient |
 | config.buckets.alias | object | `{}` | Map virtual bucket names to actual backend buckets |
 | config.buckets.locator | list | `[]` | Assign specific buckets to different backends (glob patterns supported) |
 | config.cors.allowCredential | bool | `false` | Allow credentials |
@@ -74,13 +93,15 @@ The following section lists the configurable parameters of the s3proxy chart and
 | config.cors.allowMethods | list | `["GET","PUT","POST","HEAD","DELETE"]` | Allowed methods |
 | config.cors.allowOrigins | list | `[]` | Allowed origins (e.g., ["https://example.com", "https://.+\\.example\\.com"]) |
 | config.cors.enabled | bool | `false` | Enable CORS support |
-| config.credential | string | `""` | S3 Secret Access Key for client authentication |
-| config.identity | string | `""` | S3 Access Key ID for client authentication |
+| config.logLevel | string | `"INFO"` | Log level for S3Proxy (DEBUG, INFO, WARN, ERROR) |
 | config.middlewares.eventualConsistency | bool | `false` | Enable eventual consistency modeling |
 | config.middlewares.largeObjectMocking | bool | `false` | Enable large object mocking |
 | config.middlewares.readOnly | bool | `false` | Make backend read-only |
 | config.middlewares.shardedBackend | bool | `false` | Enable sharded backend containers |
 | config.virtualHost | string | `""` | Virtual Host configuration |
+| configMergeImage.pullPolicy | string | `"IfNotPresent"` | Config merge container image pull policy |
+| configMergeImage.repository | string | `"busybox"` | Config merge container image repository |
+| configMergeImage.tag | string | `"1.36"` | Config merge container image tag |
 | extraEnvVars | list | `[]` | Additional environment variables |
 | extraVolumeMounts | list | `[]` | Additional volume mounts |
 | extraVolumes | list | `[]` | Additional volumes |
@@ -108,8 +129,8 @@ The following section lists the configurable parameters of the s3proxy chart and
 | resources | object | `{}` | Resource limits and requests |
 | securityContext | object | `{}` | Container security context |
 | service.annotations | object | `{}` | Service annotations |
-| service.port | int | `8080` | Service port |
-| service.targetPort | int | `8080` | Target port (controls both the container port and S3Proxy bind port) |
+| service.port | int | `9000` | Service port |
+| service.targetPort | int | `9000` | Target port (controls both the container port and S3Proxy bind port) |
 | service.type | string | `"ClusterIP"` | Kubernetes service type |
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
 | serviceAccount.create | bool | `false` | Specifies whether a service account should be created |
@@ -123,11 +144,14 @@ The following section lists the configurable parameters of the s3proxy chart and
 ```yaml
 # values-filesystem.yaml
 config:
-  authorization: "aws-v4"
-  identity: "myaccesskey"
-  credential: "mysecretkey"
-  backend:
-    provider: "filesystem-nio2"
+  auth:
+    type: "aws-v4"
+    identity: "myaccesskey"
+    secret: "mysecretkey"
+  backends:
+    filesystem:
+      enabled: true
+      nio2: true
     filesystem:
       basedir: "/data/s3proxy"
 
@@ -146,9 +170,10 @@ helm install s3proxy-fs ./s3proxy -f values-filesystem.yaml
 ```yaml
 # values-aws-s3.yaml
 config:
-  authorization: "aws-v4"
-  identity: "proxy-access-key"  # For clients connecting to s3proxy
-  credential: "proxy-secret-key"
+  auth:
+    type: "aws-v4"
+    identity: "proxy-access-key"  # For clients connecting to s3proxy
+    secret: "proxy-secret-key"
   backend:
     provider: "aws-s3"
     awsS3:
@@ -170,9 +195,10 @@ helm install s3proxy-s3 ./s3proxy -f values-aws-s3.yaml
 ```yaml
 # values-azure.yaml
 config:
-  authorization: "aws-v4"
-  identity: "myaccesskey"
-  credential: "mysecretkey"
+  auth:
+    type: "aws-v4"
+    identity: "myaccesskey"
+    secret: "mysecretkey"
   backend:
     provider: "azureblob"
     azureblob:
@@ -193,9 +219,10 @@ helm install s3proxy-azure ./s3proxy -f values-azure.yaml
 ```yaml
 # values-gcs.yaml
 config:
-  authorization: "aws-v4"
-  identity: "myaccesskey"
-  credential: "mysecretkey"
+  auth:
+    type: "aws-v4"
+    identity: "myaccesskey"
+    secret: "mysecretkey"
   backend:
     provider: "google-cloud-storage"
     googleCloudStorage:
@@ -215,9 +242,12 @@ persistence:
 ```yaml
 # values-anonymous.yaml
 config:
-  authorization: "none"
-  backend:
-    provider: "transient-nio2"  # In-memory storage
+  auth:
+    type: "none"
+  backends:
+    transient:
+      enabled: true
+      nio2: true  # In-memory storage
 
 persistence:
   enabled: false
@@ -333,7 +363,7 @@ This will remove all resources created by the chart. If using persistence, the P
 
 ### Common Issues
 
-1. **Authentication failures**: Ensure `config.identity` and `config.credential` are set correctly for client authentication.
+1. **Authentication failures**: Ensure `config.auth.identity` and `config.auth.secret` are set correctly for client authentication.
 
 2. **Backend connection issues**: Verify backend credentials are correctly configured in the appropriate section (e.g., `config.backend.awsS3.*`).
 
