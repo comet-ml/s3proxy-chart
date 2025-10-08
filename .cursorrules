@@ -1,0 +1,29 @@
+# Cursor Rules for S3Proxy Helm Chart Project
+
+## Project Structure
+This is a Helm chart project for deploying S3Proxy to Kubernetes. The chart is located in `charts/s3proxy/`.
+
+## Important File Handling Rules
+
+### README.md Files - DO NOT EDIT DIRECTLY
+**CRITICAL:** The following README.md files are auto-generated and must NEVER be edited directly:
+- `/README.md` (root project README)
+- `/charts/s3proxy/README.md` (chart README, if it exists)
+
+These files are generated from their corresponding template files using helm-docs.
+
+**When asked to modify README content, you MUST:**
+1. ONLY edit the template file: `charts/s3proxy/README.md.gotmpl`
+2. NEVER directly edit any `README.md` files
+3. Inform the user that README.md is auto-generated and changes should be made to the template
+4. After editing the template, remind the user to regenerate README.md using helm-docs
+
+**Template file location:**
+- Template: `charts/s3proxy/README.md.gotmpl`
+- Generated: `README.md` (root) - auto-generated from the template
+
+## Helm Chart Best Practices
+- Always validate YAML syntax when editing chart files
+- Preserve the existing indentation style (spaces for YAML files as per YAML spec)
+- When modifying values.yaml, ensure documentation comments are kept in sync
+- Test template rendering with `helm template` after making changes
