@@ -112,7 +112,7 @@ affinity: {}
 config:
   # -- Log level for S3Proxy (DEBUG, INFO, WARN, ERROR)
   logLevel: "INFO"
-  
+
   auth:
     # -- Authorization type (none, aws-v2, aws-v4, aws-v2-or-v4)
     type: "aws-v4"
@@ -205,10 +205,20 @@ config:
       enabled: false
       # -- GCP project ID
       projectId: ""
-      # -- Private key
+      # -- Private key (only used when jsonCredentials.enabled is false)
       privateKey: ""
-      # -- Service account email
+      # -- Service account email or user email (used with both privateKey and jsonCredentials methods)
       clientEmail: ""
+      # -- JSON credentials configuration
+      jsonCredentials:
+        # -- Use JSON credentials file instead of privateKey
+        enabled: false
+        # -- JSON content for creating a new secret (takes precedence over existingSecret)
+        jsonContent: ""
+        # -- Name of existing secret containing GCP credentials JSON
+        existingSecret: ""
+        # -- Key in the secret containing the JSON credentials (default: credentials.json)
+        secretKey: "credentials.json"
 
     b2:
       # -- Enable Backblaze B2 backend
