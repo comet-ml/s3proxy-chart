@@ -53,11 +53,14 @@ The following section lists the configurable parameters of the {{ template "char
 ```yaml
 # values-filesystem.yaml
 config:
-  authorization: "aws-v4"
-  identity: "myaccesskey"
-  credential: "mysecretkey"
-  backend:
-    provider: "filesystem-nio2"
+  auth:
+    type: "aws-v4"
+    identity: "myaccesskey"
+    secret: "mysecretkey"
+  backends:
+    filesystem:
+      enabled: true
+      nio2: true
     filesystem:
       basedir: "/data/s3proxy"
 
@@ -76,9 +79,10 @@ helm install s3proxy-fs ./{{ template "chart.name" . }} -f values-filesystem.yam
 ```yaml
 # values-aws-s3.yaml
 config:
-  authorization: "aws-v4"
-  identity: "proxy-access-key"  # For clients connecting to s3proxy
-  credential: "proxy-secret-key"
+  auth:
+    type: "aws-v4"
+    identity: "proxy-access-key"  # For clients connecting to s3proxy
+    secret: "proxy-secret-key"
   backend:
     provider: "aws-s3"
     awsS3:
@@ -100,9 +104,10 @@ helm install s3proxy-s3 ./{{ template "chart.name" . }} -f values-aws-s3.yaml
 ```yaml
 # values-azure.yaml
 config:
-  authorization: "aws-v4"
-  identity: "myaccesskey"
-  credential: "mysecretkey"
+  auth:
+    type: "aws-v4"
+    identity: "myaccesskey"
+    secret: "mysecretkey"
   backend:
     provider: "azureblob"
     azureblob:
@@ -123,9 +128,10 @@ helm install s3proxy-azure ./{{ template "chart.name" . }} -f values-azure.yaml
 ```yaml
 # values-gcs.yaml
 config:
-  authorization: "aws-v4"
-  identity: "myaccesskey"
-  credential: "mysecretkey"
+  auth:
+    type: "aws-v4"
+    identity: "myaccesskey"
+    secret: "mysecretkey"
   backend:
     provider: "google-cloud-storage"
     googleCloudStorage:
@@ -145,9 +151,12 @@ persistence:
 ```yaml
 # values-anonymous.yaml
 config:
-  authorization: "none"
-  backend:
-    provider: "transient-nio2"  # In-memory storage
+  auth:
+    type: "none"
+  backends:
+    transient:
+      enabled: true
+      nio2: true  # In-memory storage
 
 persistence:
   enabled: false
@@ -263,7 +272,7 @@ This will remove all resources created by the chart. If using persistence, the P
 
 ### Common Issues
 
-1. **Authentication failures**: Ensure `config.identity` and `config.credential` are set correctly for client authentication.
+1. **Authentication failures**: Ensure `config.auth.identity` and `config.auth.secret` are set correctly for client authentication.
 
 2. **Backend connection issues**: Verify backend credentials are correctly configured in the appropriate section (e.g., `config.backend.awsS3.*`).
 

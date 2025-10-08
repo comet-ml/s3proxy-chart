@@ -13,6 +13,14 @@ image:
   # -- Overrides the image tag whose default is the chart appVersion
   tag: ""
 
+configMergeImage:
+  # -- Config merge container image repository
+  repository: busybox
+  # -- Config merge container image pull policy
+  pullPolicy: IfNotPresent
+  # -- Config merge container image tag
+  tag: "1.36"
+
 # -- Image pull secrets
 imagePullSecrets: []
 # -- String to partially override s3proxy.fullname template
@@ -41,9 +49,9 @@ service:
   # -- Kubernetes service type
   type: ClusterIP
   # -- Service port
-  port: 8080
+  port: 9000
   # -- Target port (controls both the container port and S3Proxy bind port)
-  targetPort: 8080
+  targetPort: 9000
   # -- Service annotations
   annotations: {}
 
@@ -102,13 +110,16 @@ tolerations: []
 affinity: {}
 
 config:
-  # -- Authorization type (none, aws-v2, aws-v4, aws-v2-or-v4)
-  authorization: "aws-v4"
+  # -- Log level for S3Proxy (DEBUG, INFO, WARN, ERROR)
+  logLevel: "INFO"
 
-  # -- S3 Access Key ID for client authentication
-  identity: ""
-  # -- S3 Secret Access Key for client authentication
-  credential: ""
+  auth:
+    # -- Authorization type (none, aws-v2, aws-v4, aws-v2-or-v4)
+    type: "aws-v4"
+    # -- S3 Access Key ID for client authentication
+    identity: ""
+    # -- S3 Secret Access Key for client authentication
+    secret: ""
 
   # -- Virtual Host configuration
   virtualHost: ""
@@ -146,25 +157,40 @@ config:
     # -- Enable large object mocking
     largeObjectMocking: false
 
-  backend:
-    # -- Backend provider type (filesystem, filesystem-nio2, transient, transient-nio2, aws-s3, s3, azureblob, azureblob-sdk, b2, google-cloud-storage, openstack-swift, rackspace-cloudfiles-uk, rackspace-cloudfiles-us)
-    provider: "filesystem-nio2"
-
+  backends:
     filesystem:
+      # -- Enable filesystem backend
+      enabled: true
+      # -- Use NIO2 implementation (filesystem-nio2) instead of standard filesystem
+      nio2: true
       # -- Base directory for filesystem backend
       basedir: "/data/s3proxy"
 
-    awsS3:
+    transient:
+      # -- Enable transient (in-memory) backend
+      enabled: false
+      # -- Use NIO2 implementation (transient-nio2) instead of standard transient
+      nio2: true
+
+    s3:
+      # -- Enable S3 backend
+      enabled: false
+      # -- Use AWS-specific S3 provider (aws-s3) instead of generic S3 provider
+      aws: true
       # -- AWS region
       region: ""
       # -- S3 endpoint
       endpoint: ""
-      # -- AWS Access Key ID for backend
+      # -- S3 Access Key ID for backend
       accessKeyId: ""
-      # -- AWS Secret Access Key for backend
+      # -- S3 Secret Access Key for backend
       secretAccessKey: ""
 
     azureblob:
+      # -- Enable Azure Blob Storage backend
+      enabled: false
+      # -- Provider type (azureblob or azureblob-sdk)
+      provider: "azureblob"
       # -- Storage account name
       account: ""
       # -- Storage account key
@@ -175,24 +201,36 @@ config:
       sasToken: ""
 
     googleCloudStorage:
+      # -- Enable Google Cloud Storage backend
+      enabled: false
       # -- GCP project ID
       projectId: ""
-      # -- Private key ID
-      privateKeyId: ""
-      # -- Private key
+      # -- Private key (only used when jsonCredentials.enabled is false)
       privateKey: ""
-      # -- Service account email
+      # -- Service account email or user email (used with both privateKey and jsonCredentials methods)
       clientEmail: ""
-      # -- Client ID
-      clientId: ""
+      # -- JSON credentials configuration
+      jsonCredentials:
+        # -- Use JSON credentials file instead of privateKey
+        enabled: false
+        # -- JSON content for creating a new secret (takes precedence over existingSecret)
+        jsonContent: ""
+        # -- Name of existing secret containing GCP credentials JSON
+        existingSecret: ""
+        # -- Key in the secret containing the JSON credentials (default: credentials.json)
+        secretKey: "credentials.json"
 
     b2:
+      # -- Enable Backblaze B2 backend
+      enabled: false
       # -- B2 account ID
       account: ""
       # -- B2 application key
       applicationKey: ""
 
-    swift:
+    openstackSwift:
+      # -- Enable OpenStack Swift backend
+      enabled: false
       # -- Authentication URL
       authUrl: ""
       # -- Tenant name
@@ -203,6 +241,16 @@ config:
       password: ""
       # -- Region
       region: ""
+
+    rackspaceCloudfiles:
+      # -- Enable Rackspace Cloud Files backend
+      enabled: false
+      # -- Region (uk or us)
+      region: "us"
+      # -- Username
+      userName: ""
+      # -- API key
+      apiKey: ""
 
 persistence:
   # -- Enable persistence using PVC

@@ -1,16 +1,31 @@
 # Example values for s3proxy Helm chart
 # This demonstrates a typical configuration using filesystem backend with authentication
 
+# Custom image configuration (optional)
+# image:
+#   repository: andrewgaul/s3proxy
+#   tag: "latest"
+#   pullPolicy: Always
+
+# Custom config merge container image configuration (optional)
+# configMergeImage:
+#   repository: busybox
+#   tag: "1.36"
+#   pullPolicy: IfNotPresent
+
 # S3Proxy configuration
 config:
-  # Authentication type for clients connecting to S3Proxy
-  # Options: none, aws-v2, aws-v4, aws-v2-or-v4
-  authorization: "aws-v4"
+  # Log level for S3Proxy (DEBUG, INFO, WARN, ERROR)
+  logLevel: "INFO"
 
-  # Credentials for clients to authenticate to S3Proxy
-  # These should be changed to secure values
-  identity: "admin"
-  credential: "changeme123"
+  auth:
+    # Authentication type for clients connecting to S3Proxy
+    # Options: none, aws-v2, aws-v4, aws-v2-or-v4
+    type: "aws-v4"
+    # Credentials for clients to authenticate to S3Proxy
+    # These should be changed to secure values
+    identity: "admin"
+    secret: "changeme123"
 
   # Enable CORS for web applications
   cors:
@@ -30,24 +45,95 @@ config:
     allowCredential: true
 
   # Storage backend configuration
-  backend:
-    # Use filesystem backend for local storage
-    provider: "filesystem-nio2"
+  # Multiple backends can be enabled simultaneously
+  # Properties files will be loaded in order: main properties first, then each backend's properties
+  # Later properties can override earlier ones if there are conflicts
+  backends:
+    # Filesystem backend for local storage
     filesystem:
+      enabled: true  # Set to true to use filesystem backend
+      nio2: true  # Set to true for NIO2 implementation (filesystem-nio2), false for standard (filesystem)
       basedir: "/data/s3proxy"
 
-    # Example: AWS S3 backend (uncomment to use)
-    # provider: "aws-s3"
-    # awsS3:
-    #   region: "us-west-2"
-    #   accessKeyId: "AKIAIOSFODNN7EXAMPLE"
-    #   secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+    # Transient (in-memory) backend - useful for testing
+    transient:
+      enabled: false  # Set to true to use transient backend
+      nio2: true  # Set to true for NIO2 implementation (transient-nio2), false for standard (transient)
 
-    # Example: Azure Blob backend (uncomment to use)
-    # provider: "azureblob"
-    # azureblob:
-    #   account: "mystorageaccount"
-    #   key: "base64encodedkey=="
+    # S3 backend (AWS S3 or S3-compatible storage)
+    s3:
+      enabled: false  # Set to true to use S3 backend
+      aws: true  # Set to true for AWS S3 (aws-s3 provider), false for generic S3
+      region: "us-west-2"
+      # endpoint: "https://s3.amazonaws.com"  # Optional custom endpoint (e.g., MinIO, Ceph)
+      accessKeyId: "AKIAIOSFODNN7EXAMPLE"
+      secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+
+    # Azure Blob Storage backend
+    azureblob:
+      enabled: false  # Set to true to use Azure Blob backend
+      provider: "azureblob"  # Can be "azureblob" or "azureblob-sdk"
+      account: "mystorageaccount"
+      key: "base64encodedkey=="
+      # endpoint: "https://mystorageaccount.blob.core.windows.net"  # Optional
+      # sasToken: ""  # Optional SAS token
+
+    # Google Cloud Storage backend
+    googleCloudStorage:
+      enabled: false  # Set to true to use GCS backend
+      projectId: "my-project"
+
+      # Service account email or user email (required for both authentication methods)
+      clientEmail: "service-account@my-project.iam.gserviceaccount.com"
+
+      # Option 1: Using privateKey directly
+      privateKey: "-----BEGIN RSA PRIVATE KEY-----\n..."
+
+      # Option 2: Using JSON credentials file (preferred for GCP)
+      # This provides the credential (privateKey) via a mounted file
+      jsonCredentials:
+        enabled: false  # Set to true to use JSON credentials
+
+        # Either provide the JSON content directly:
+        # jsonContent: |
+        #   {
+        #     "type": "service_account",
+        #     "project_id": "my-project",
+        #     "private_key_id": "key-id",
+        #     "private_key": "-----BEGIN RSA PRIVATE KEY-----\n...",
+        #     "client_email": "service-account@my-project.iam.gserviceaccount.com",
+        #     "client_id": "...",
+        #     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        #     "token_uri": "https://oauth2.googleapis.com/token",
+        #     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        #     "client_x509_cert_url": "..."
+        #   }
+
+        # Or reference an existing secret containing the JSON:
+        # existingSecret: "my-gcp-credentials-secret"
+        # secretKey: "credentials.json"  # Key in the secret containing the JSON (default: credentials.json)
+
+    # Backblaze B2 backend
+    b2:
+      enabled: false  # Set to true to use B2 backend
+      account: "account-id"
+      applicationKey: "application-key"
+
+    # OpenStack Swift backend
+    openstackSwift:
+      enabled: false  # Set to true to use Swift backend
+      authUrl: "https://auth.cloud.com/v2.0"
+      tenantName: "my-tenant"
+      userName: "my-user"
+      password: "my-password"
+      region: "RegionOne"
+
+    # Rackspace Cloud Files backend
+    rackspaceCloudfiles:
+      enabled: false  # Set to true to use Rackspace Cloud Files backend
+      region: "us"  # Region: "us" or "uk"
+      userName: "my-user"
+      apiKey: "my-api-key"
 
 # Persistence settings for filesystem backend
 persistence:
