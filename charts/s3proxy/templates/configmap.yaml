@@ -133,8 +133,8 @@ data:
 
     # Google Cloud Storage backend configuration
     jclouds.provider=google-cloud-storage
-  {{- if .Values.config.backends.googleCloudStorage.projectId }}
-    jclouds.project-id={{ .Values.config.backends.googleCloudStorage.projectId }}
+  {{- if .Values.config.backends.googleCloudStorage.projectID }}
+    jclouds.project-id={{ .Values.config.backends.googleCloudStorage.projectID }}
   {{- end }}
     # Credentials will be merged from the secret properties file
     # jclouds.identity and jclouds.credential will be provided by the secret
@@ -156,8 +156,8 @@ data:
 
     # OpenStack Swift backend configuration
     jclouds.provider=openstack-swift
-  {{- if .Values.config.backends.openstackSwift.authUrl }}
-    jclouds.keystone.auth-url={{ .Values.config.backends.openstackSwift.authUrl }}
+  {{- if .Values.config.backends.openstackSwift.authURL }}
+    jclouds.keystone.auth-url={{ .Values.config.backends.openstackSwift.authURL }}
   {{- end }}
   {{- if .Values.config.backends.openstackSwift.region }}
     jclouds.region={{ .Values.config.backends.openstackSwift.region }}
