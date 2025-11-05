@@ -1,6 +1,6 @@
 # s3proxy
 
-![Version: 0.0.4](https://img.shields.io/badge/Version-0.0.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.7.0](https://img.shields.io/badge/AppVersion-2.7.0-informational?style=flat-square)
+![Version: 0.0.5](https://img.shields.io/badge/Version-0.0.5-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.7.0](https://img.shields.io/badge/AppVersion-2.7.0-informational?style=flat-square)
 
 A Helm chart for deploying S3Proxy - Access other storage backends via the S3 API
 
@@ -12,130 +12,616 @@ A Helm chart for deploying S3Proxy - Access other storage backends via the S3 AP
 
 ## Installation
 
-### Add the repository (if published)
-
-```bash
-helm repo add s3proxy <REPO_URL>
-helm repo update
-```
-
 ### Install the chart
 
 ```bash
 # Install with default values (filesystem backend)
-helm install my-s3proxy ./s3proxy
+helm install my-s3proxy oci://ghcr.io/comet-ml/s3proxy
 
 # Install with custom values
-helm install my-s3proxy ./s3proxy -f my-values.yaml
+helm install my-s3proxy oci://ghcr.io/comet-ml/s3proxy -f override-values.yaml
 ```
 
 ## Configuration
 
 The following section lists the configurable parameters of the s3proxy chart and their default values.
 
-### General Parameters
-
 ## Values
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| affinity | object | `{}` | Affinity for pod assignment |
-| autoscaling.enabled | bool | `false` | Enable HPA |
-| autoscaling.maxReplicas | int | `100` | Maximum number of replicas |
-| autoscaling.minReplicas | int | `1` | Minimum number of replicas |
-| autoscaling.targetCPUUtilizationPercentage | int | `80` | Target CPU utilization percentage |
-| config.auth.identity | string | `""` | S3 Access Key ID for client authentication |
-| config.auth.secret | string | `""` | S3 Secret Access Key for client authentication |
-| config.auth.type | string | `"aws-v4"` | Authorization type (none, aws-v2, aws-v4, aws-v2-or-v4) |
-| config.backends.azureblob.account | string | `""` | Storage account name |
-| config.backends.azureblob.enabled | bool | `false` | Enable Azure Blob Storage backend |
-| config.backends.azureblob.endpoint | string | `""` | Azure endpoint |
-| config.backends.azureblob.key | string | `""` | Storage account key |
-| config.backends.azureblob.provider | string | `"azureblob"` | Provider type (azureblob or azureblob-sdk) |
-| config.backends.azureblob.sasToken | string | `""` | SAS token |
-| config.backends.b2.account | string | `""` | B2 account ID |
-| config.backends.b2.applicationKey | string | `""` | B2 application key |
-| config.backends.b2.enabled | bool | `false` | Enable Backblaze B2 backend |
-| config.backends.filesystem.basedir | string | `"/data/s3proxy"` | Base directory for filesystem backend |
-| config.backends.filesystem.enabled | bool | `true` | Enable filesystem backend |
-| config.backends.filesystem.nio2 | bool | `true` | Use NIO2 implementation (filesystem-nio2) instead of standard filesystem |
-| config.backends.googleCloudStorage.clientEmail | string | `""` | Service account email or user email (used with both privateKey and jsonCredentials methods) |
-| config.backends.googleCloudStorage.enabled | bool | `false` | Enable Google Cloud Storage backend |
-| config.backends.googleCloudStorage.jsonCredentials | object | `{"enabled":false,"existingSecret":"","jsonContent":"","secretKey":"credentials.json"}` | JSON credentials configuration |
-| config.backends.googleCloudStorage.jsonCredentials.enabled | bool | `false` | Use JSON credentials file instead of privateKey |
-| config.backends.googleCloudStorage.jsonCredentials.existingSecret | string | `""` | Name of existing secret containing GCP credentials JSON |
-| config.backends.googleCloudStorage.jsonCredentials.jsonContent | string | `""` | JSON content for creating a new secret (takes precedence over existingSecret) |
-| config.backends.googleCloudStorage.jsonCredentials.secretKey | string | `"credentials.json"` | Key in the secret containing the JSON credentials (default: credentials.json) |
-| config.backends.googleCloudStorage.privateKey | string | `""` | Private key (only used when jsonCredentials.enabled is false) |
-| config.backends.googleCloudStorage.projectId | string | `""` | GCP project ID |
-| config.backends.openstackSwift.authUrl | string | `""` | Authentication URL |
-| config.backends.openstackSwift.enabled | bool | `false` | Enable OpenStack Swift backend |
-| config.backends.openstackSwift.password | string | `""` | Password |
-| config.backends.openstackSwift.region | string | `""` | Region |
-| config.backends.openstackSwift.tenantName | string | `""` | Tenant name |
-| config.backends.openstackSwift.userName | string | `""` | Username |
-| config.backends.rackspaceCloudfiles.apiKey | string | `""` | API key |
-| config.backends.rackspaceCloudfiles.enabled | bool | `false` | Enable Rackspace Cloud Files backend |
-| config.backends.rackspaceCloudfiles.region | string | `"us"` | Region (uk or us) |
-| config.backends.rackspaceCloudfiles.userName | string | `""` | Username |
-| config.backends.s3.accessKeyId | string | `""` | S3 Access Key ID for backend |
-| config.backends.s3.aws | bool | `true` | Use AWS-specific S3 provider (aws-s3) instead of generic S3 provider |
-| config.backends.s3.enabled | bool | `false` | Enable S3 backend |
-| config.backends.s3.endpoint | string | `""` | S3 endpoint |
-| config.backends.s3.region | string | `""` | AWS region |
-| config.backends.s3.secretAccessKey | string | `""` | S3 Secret Access Key for backend |
-| config.backends.transient.enabled | bool | `false` | Enable transient (in-memory) backend |
-| config.backends.transient.nio2 | bool | `true` | Use NIO2 implementation (transient-nio2) instead of standard transient |
-| config.buckets.alias | object | `{}` | Map virtual bucket names to actual backend buckets |
-| config.buckets.locator | list | `[]` | Assign specific buckets to different backends (glob patterns supported) |
-| config.cors.allowCredential | bool | `false` | Allow credentials |
-| config.cors.allowHeaders | list | `["Accept","Content-Type"]` | Allowed headers |
-| config.cors.allowMethods | list | `["GET","PUT","POST","HEAD","DELETE"]` | Allowed methods |
-| config.cors.allowOrigins | list | `[]` | Allowed origins (e.g., ["https://example.com", "https://.+\\.example\\.com"]) |
-| config.cors.enabled | bool | `false` | Enable CORS support |
-| config.logLevel | string | `"INFO"` | Log level for S3Proxy (DEBUG, INFO, WARN, ERROR) |
-| config.middlewares.eventualConsistency | bool | `false` | Enable eventual consistency modeling |
-| config.middlewares.largeObjectMocking | bool | `false` | Enable large object mocking |
-| config.middlewares.readOnly | bool | `false` | Make backend read-only |
-| config.middlewares.shardedBackend | bool | `false` | Enable sharded backend containers |
-| config.virtualHost | string | `""` | Virtual Host configuration |
-| configMergeImage.pullPolicy | string | `"IfNotPresent"` | Config merge container image pull policy |
-| configMergeImage.repository | string | `"busybox"` | Config merge container image repository |
-| configMergeImage.tag | string | `"1.36"` | Config merge container image tag |
-| extraEnvVars | list | `[]` | Additional environment variables |
-| extraVolumeMounts | list | `[]` | Additional volume mounts |
-| extraVolumes | list | `[]` | Additional volumes |
-| fullnameOverride | string | `""` | String to fully override s3proxy.fullname template |
-| image.pullPolicy | string | `"IfNotPresent"` | Image pull policy |
-| image.repository | string | `"andrewgaul/s3proxy"` | S3Proxy image repository |
-| image.tag | string | `""` | Overrides the image tag whose default is the chart appVersion |
-| imagePullSecrets | list | `[]` | Image pull secrets |
-| ingress.annotations | object | `{}` | Ingress annotations |
-| ingress.className | string | `""` | Ingress class name |
-| ingress.enabled | bool | `false` | Enable ingress |
-| ingress.hosts | list | `[]` | Ingress hosts configuration |
-| ingress.tls | list | `[]` | TLS configuration |
-| nameOverride | string | `""` | String to partially override s3proxy.fullname template |
-| nodeSelector | object | `{}` | Node selector for pod assignment |
-| persistence.accessMode | string | `"ReadWriteOnce"` | PVC Access Mode |
-| persistence.annotations | object | `{}` | PVC annotations |
-| persistence.enabled | bool | `true` | Enable persistence using PVC |
-| persistence.existingClaim | string | `""` | Use existing PVC |
-| persistence.size | string | `"10Gi"` | PVC Storage Request |
-| persistence.storageClass | string | `""` (uses default StorageClass) | Storage Class |
-| podAnnotations | object | `{}` | Annotations to add to the pod |
-| podSecurityContext | object | `{}` | Pod security context |
-| replicaCount | int | `1` | Number of S3Proxy replicas |
-| resources | object | `{}` | Resource limits and requests |
-| securityContext | object | `{}` | Container security context |
-| service.annotations | object | `{}` | Service annotations |
-| service.port | int | `9000` | Service port |
-| service.targetPort | int | `9000` | Target port (controls both the container port and S3Proxy bind port) |
-| service.type | string | `"ClusterIP"` | Kubernetes service type |
-| serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
-| serviceAccount.create | bool | `false` | Specifies whether a service account should be created |
-| serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template |
-| tolerations | list | `[]` | Tolerations for pod assignment |
+*Scroll sideways to see all columns.*
+
+<table>
+	<thead>
+		<th>Key</th>
+		<th>Description</th>
+		<th>Type</th>
+		<th>Default</th>
+	</thead>
+	<tbody>
+		<tr>
+			<td><code>affinity</code></td>
+			<td>Affinity for pod assignment</td>
+			<td><code>object</code></td>
+			<td><code>{}</code></td>
+		</tr>
+		<tr>
+			<td><code>autoscaling.enabled</code></td>
+			<td>Enable HPA</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>autoscaling.maxReplicas</code></td>
+			<td>Maximum number of replicas</td>
+			<td><code>int</code></td>
+			<td><code>100</code></td>
+		</tr>
+		<tr>
+			<td><code>autoscaling.minReplicas</code></td>
+			<td>Minimum number of replicas</td>
+			<td><code>int</code></td>
+			<td><code>1</code></td>
+		</tr>
+		<tr>
+			<td><code>autoscaling.targetCPUUtilizationPercentage</code></td>
+			<td>Target CPU utilization percentage</td>
+			<td><code>int</code></td>
+			<td><code>80</code></td>
+		</tr>
+		<tr>
+			<td><code>config.auth.identity</code></td>
+			<td>S3 Access Key ID for client authentication</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.auth.secret</code></td>
+			<td>S3 Secret Access Key for client authentication</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.auth.type</code></td>
+			<td>Authorization type (none, aws-v2, aws-v4, aws-v2-or-v4)</td>
+			<td><code>string</code></td>
+			<td><code>"aws-v4"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.azureblob.account</code></td>
+			<td>Storage account name</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.azureblob.enabled</code></td>
+			<td>Enable Azure Blob Storage backend</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.azureblob.endpoint</code></td>
+			<td>Azure endpoint</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.azureblob.key</code></td>
+			<td>Storage account key</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.azureblob.provider</code></td>
+			<td>Provider type (azureblob or azureblob-sdk)</td>
+			<td><code>string</code></td>
+			<td><code>"azureblob"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.azureblob.sasToken</code></td>
+			<td>SAS token</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.b2.account</code></td>
+			<td>B2 account ID</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.b2.applicationKey</code></td>
+			<td>B2 application key</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.b2.enabled</code></td>
+			<td>Enable Backblaze B2 backend</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.filesystem.basedir</code></td>
+			<td>Base directory for filesystem backend</td>
+			<td><code>string</code></td>
+			<td><code>"/data/s3proxy"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.filesystem.enabled</code></td>
+			<td>Enable filesystem backend</td>
+			<td><code>bool</code></td>
+			<td><code>true</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.filesystem.nio2</code></td>
+			<td>Use NIO2 implementation (filesystem-nio2) instead of standard filesystem</td>
+			<td><code>bool</code></td>
+			<td><code>true</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.clientEmail</code></td>
+			<td>Service account email or user email (used with both privateKey and jsonCredentials methods)</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.enabled</code></td>
+			<td>Enable Google Cloud Storage backend</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.jsonCredentials</code></td>
+			<td>JSON credentials configuration</td>
+			<td><code>object</code></td>
+			<td><code>{"enabled":false,"existingSecret":"","jsonContent":"","secretKey":"credentials.json"}</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.jsonCredentials.enabled</code></td>
+			<td>Use JSON credentials file instead of privateKey</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.jsonCredentials.existingSecret</code></td>
+			<td>Name of existing secret containing GCP credentials JSON</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.jsonCredentials.jsonContent</code></td>
+			<td>JSON content for creating a new secret (takes precedence over existingSecret)</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.jsonCredentials.secretKey</code></td>
+			<td>Key in the secret containing the JSON credentials (default: credentials.json)</td>
+			<td><code>string</code></td>
+			<td><code>"credentials.json"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.privateKey</code></td>
+			<td>Private key (only used when jsonCredentials.enabled is false)</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.projectID</code></td>
+			<td>GCP project ID</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.openstackSwift.authURL</code></td>
+			<td>Authentication URL</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.openstackSwift.enabled</code></td>
+			<td>Enable OpenStack Swift backend</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.openstackSwift.password</code></td>
+			<td>Password</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.openstackSwift.region</code></td>
+			<td>Region</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.openstackSwift.tenantName</code></td>
+			<td>Tenant name</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.openstackSwift.userName</code></td>
+			<td>Username</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.rackspaceCloudfiles.apiKey</code></td>
+			<td>API key</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.rackspaceCloudfiles.enabled</code></td>
+			<td>Enable Rackspace Cloud Files backend</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.rackspaceCloudfiles.region</code></td>
+			<td>Region (uk or us)</td>
+			<td><code>string</code></td>
+			<td><code>"us"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.rackspaceCloudfiles.userName</code></td>
+			<td>Username</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.s3.accessKeyID</code></td>
+			<td>S3 Access Key ID for backend</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.s3.aws</code></td>
+			<td>Use AWS-specific S3 provider (aws-s3) instead of generic S3 provider</td>
+			<td><code>bool</code></td>
+			<td><code>true</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.s3.enabled</code></td>
+			<td>Enable S3 backend</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.s3.endpoint</code></td>
+			<td>S3 endpoint</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.s3.region</code></td>
+			<td>AWS region</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.s3.secretAccessKey</code></td>
+			<td>S3 Secret Access Key for backend</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.transient.enabled</code></td>
+			<td>Enable transient (in-memory) backend</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.transient.nio2</code></td>
+			<td>Use NIO2 implementation (transient-nio2) instead of standard transient</td>
+			<td><code>bool</code></td>
+			<td><code>true</code></td>
+		</tr>
+		<tr>
+			<td><code>config.buckets.alias</code></td>
+			<td>Map virtual bucket names to actual backend buckets</td>
+			<td><code>object</code></td>
+			<td><code>{}</code></td>
+		</tr>
+		<tr>
+			<td><code>config.buckets.locator</code></td>
+			<td>Assign specific buckets to different backends (glob patterns supported)</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
+		</tr>
+		<tr>
+			<td><code>config.cors.allowCredential</code></td>
+			<td>Allow credentials</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>config.cors.allowHeaders</code></td>
+			<td>Allowed headers</td>
+			<td><code>list</code></td>
+			<td><code>["Accept","Content-Type"]</code></td>
+		</tr>
+		<tr>
+			<td><code>config.cors.allowMethods</code></td>
+			<td>Allowed methods</td>
+			<td><code>list</code></td>
+			<td><code>["GET","PUT","POST","HEAD","DELETE"]</code></td>
+		</tr>
+		<tr>
+			<td><code>config.cors.allowOrigins</code></td>
+			<td>Allowed origins (e.g., ["https://example.com", "https://.+\\.example\\.com"])</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
+		</tr>
+		<tr>
+			<td><code>config.cors.enabled</code></td>
+			<td>Enable CORS support</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>config.logLevel</code></td>
+			<td>Log level for S3Proxy (DEBUG, INFO, WARN, ERROR)</td>
+			<td><code>string</code></td>
+			<td><code>"INFO"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.middlewares.eventualConsistency</code></td>
+			<td>Enable eventual consistency modeling</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>config.middlewares.largeObjectMocking</code></td>
+			<td>Enable large object mocking</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>config.middlewares.readOnly</code></td>
+			<td>Make backend read-only</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>config.middlewares.shardedBackend</code></td>
+			<td>Enable sharded backend containers</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>config.virtualHost</code></td>
+			<td>Virtual Host configuration</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>configMergeImage.pullPolicy</code></td>
+			<td>Config merge container image pull policy</td>
+			<td><code>string</code></td>
+			<td><code>"IfNotPresent"</code></td>
+		</tr>
+		<tr>
+			<td><code>configMergeImage.repository</code></td>
+			<td>Config merge container image repository</td>
+			<td><code>string</code></td>
+			<td><code>"busybox"</code></td>
+		</tr>
+		<tr>
+			<td><code>configMergeImage.tag</code></td>
+			<td>Config merge container image tag</td>
+			<td><code>string</code></td>
+			<td><code>"1.36"</code></td>
+		</tr>
+		<tr>
+			<td><code>extraEnvVars</code></td>
+			<td>Additional environment variables</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
+		</tr>
+		<tr>
+			<td><code>extraVolumeMounts</code></td>
+			<td>Additional volume mounts</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
+		</tr>
+		<tr>
+			<td><code>extraVolumes</code></td>
+			<td>Additional volumes</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
+		</tr>
+		<tr>
+			<td><code>fullnameOverride</code></td>
+			<td>String to fully override s3proxy.fullname template</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>image.pullPolicy</code></td>
+			<td>Image pull policy</td>
+			<td><code>string</code></td>
+			<td><code>"IfNotPresent"</code></td>
+		</tr>
+		<tr>
+			<td><code>image.repository</code></td>
+			<td>S3Proxy image repository</td>
+			<td><code>string</code></td>
+			<td><code>"andrewgaul/s3proxy"</code></td>
+		</tr>
+		<tr>
+			<td><code>image.tag</code></td>
+			<td>Overrides the image tag whose default is the chart appVersion</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>imagePullSecrets</code></td>
+			<td>Image pull secrets</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
+		</tr>
+		<tr>
+			<td><code>ingress.annotations</code></td>
+			<td>Ingress annotations</td>
+			<td><code>object</code></td>
+			<td><code>{}</code></td>
+		</tr>
+		<tr>
+			<td><code>ingress.className</code></td>
+			<td>Ingress class name</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>ingress.enabled</code></td>
+			<td>Enable ingress</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>ingress.hosts</code></td>
+			<td>Ingress hosts configuration</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
+		</tr>
+		<tr>
+			<td><code>ingress.tls</code></td>
+			<td>TLS configuration</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
+		</tr>
+		<tr>
+			<td><code>nameOverride</code></td>
+			<td>String to partially override s3proxy.fullname template</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>nodeSelector</code></td>
+			<td>Node selector for pod assignment</td>
+			<td><code>object</code></td>
+			<td><code>{}</code></td>
+		</tr>
+		<tr>
+			<td><code>persistence.accessMode</code></td>
+			<td>PVC Access Mode</td>
+			<td><code>string</code></td>
+			<td><code>"ReadWriteOnce"</code></td>
+		</tr>
+		<tr>
+			<td><code>persistence.annotations</code></td>
+			<td>PVC annotations</td>
+			<td><code>object</code></td>
+			<td><code>{}</code></td>
+		</tr>
+		<tr>
+			<td><code>persistence.enabled</code></td>
+			<td>Enable persistence using PVC</td>
+			<td><code>bool</code></td>
+			<td><code>true</code></td>
+		</tr>
+		<tr>
+			<td><code>persistence.existingClaim</code></td>
+			<td>Use existing PVC</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>persistence.size</code></td>
+			<td>PVC Storage Request</td>
+			<td><code>string</code></td>
+			<td><code>"10Gi"</code></td>
+		</tr>
+		<tr>
+			<td><code>persistence.storageClass</code></td>
+			<td>Storage Class</td>
+			<td><code>string</code></td>
+			<td><code>""</code> (uses default StorageClass)</td>
+		</tr>
+		<tr>
+			<td><code>podAnnotations</code></td>
+			<td>Annotations to add to the pod</td>
+			<td><code>object</code></td>
+			<td><code>{}</code></td>
+		</tr>
+		<tr>
+			<td><code>podSecurityContext</code></td>
+			<td>Pod security context</td>
+			<td><code>object</code></td>
+			<td><code>{}</code></td>
+		</tr>
+		<tr>
+			<td><code>replicaCount</code></td>
+			<td>Number of S3Proxy replicas</td>
+			<td><code>int</code></td>
+			<td><code>1</code></td>
+		</tr>
+		<tr>
+			<td><code>resources</code></td>
+			<td>Resource limits and requests</td>
+			<td><code>object</code></td>
+			<td><code>{}</code></td>
+		</tr>
+		<tr>
+			<td><code>securityContext</code></td>
+			<td>Container security context</td>
+			<td><code>object</code></td>
+			<td><code>{}</code></td>
+		</tr>
+		<tr>
+			<td><code>service.annotations</code></td>
+			<td>Service annotations</td>
+			<td><code>object</code></td>
+			<td><code>{}</code></td>
+		</tr>
+		<tr>
+			<td><code>service.port</code></td>
+			<td>Service port</td>
+			<td><code>int</code></td>
+			<td><code>9000</code></td>
+		</tr>
+		<tr>
+			<td><code>service.targetPort</code></td>
+			<td>Target port (controls both the container port and S3Proxy bind port)</td>
+			<td><code>int</code></td>
+			<td><code>9000</code></td>
+		</tr>
+		<tr>
+			<td><code>service.type</code></td>
+			<td>Kubernetes service type</td>
+			<td><code>string</code></td>
+			<td><code>"ClusterIP"</code></td>
+		</tr>
+		<tr>
+			<td><code>serviceAccount.annotations</code></td>
+			<td>Annotations to add to the service account</td>
+			<td><code>object</code></td>
+			<td><code>{}</code></td>
+		</tr>
+		<tr>
+			<td><code>serviceAccount.create</code></td>
+			<td>Specifies whether a service account should be created</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>serviceAccount.name</code></td>
+			<td>The name of the service account to use. If not set and create is true, a name is generated using the fullname template</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>tolerations</code></td>
+			<td>Tolerations for pod assignment</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
+		</tr>
+	</tbody>
+</table>
 
 ## Usage Examples
 
@@ -178,7 +664,7 @@ config:
     provider: "aws-s3"
     awsS3:
       region: "us-west-2"
-      accessKeyId: "aws-access-key-id"  # For s3proxy to connect to AWS
+      accessKeyID: "aws-access-key-id"  # For s3proxy to connect to AWS
       secretAccessKey: "aws-secret-access-key"
 
 persistence:
@@ -226,7 +712,7 @@ config:
   backend:
     provider: "google-cloud-storage"
     googleCloudStorage:
-      projectId: "my-project"
+      projectID: "my-project"
       clientEmail: "service-account@my-project.iam.gserviceaccount.com"
       privateKey: |
         -----BEGIN RSA PRIVATE KEY-----
