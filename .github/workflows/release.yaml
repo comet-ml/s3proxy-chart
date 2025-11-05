@@ -77,6 +77,10 @@ jobs:
           git config --global user.name 'Github Actions (${{ github.actor }})'
           git config --global user.email 'github-actions@comet.com'
 
+      - name: Copy README into Chart
+        run: |
+          cp README.md charts/s3proxy/
+
       - name: Run chart-releaser
         uses: bitdeps/helm-oci-charts-releaser@v0.1.3
         with:
