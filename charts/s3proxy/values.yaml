@@ -182,7 +182,7 @@ config:
       # -- S3 endpoint
       endpoint: ""
       # -- S3 Access Key ID for backend
-      accessKeyId: ""
+      accessKeyID: ""
       # -- S3 Secret Access Key for backend
       secretAccessKey: ""
 
@@ -204,7 +204,7 @@ config:
       # -- Enable Google Cloud Storage backend
       enabled: false
       # -- GCP project ID
-      projectId: ""
+      projectID: ""
       # -- Private key (only used when jsonCredentials.enabled is false)
       privateKey: ""
       # -- Service account email or user email (used with both privateKey and jsonCredentials methods)
@@ -232,7 +232,7 @@ config:
       # -- Enable OpenStack Swift backend
       enabled: false
       # -- Authentication URL
-      authUrl: ""
+      authURL: ""
       # -- Tenant name
       tenantName: ""
       # -- Username

@@ -66,7 +66,7 @@ config:
       aws: true  # Set to true for AWS S3 (aws-s3 provider), false for generic S3
       region: "us-west-2"
       # endpoint: "https://s3.amazonaws.com"  # Optional custom endpoint (e.g., MinIO, Ceph)
-      accessKeyId: "AKIAIOSFODNN7EXAMPLE"
+      accessKeyID: "AKIAIOSFODNN7EXAMPLE"
       secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 
     # Azure Blob Storage backend
@@ -81,7 +81,7 @@ config:
     # Google Cloud Storage backend
     googleCloudStorage:
       enabled: false  # Set to true to use GCS backend
-      projectId: "my-project"
+      projectID: "my-project"
 
       # Service account email or user email (required for both authentication methods)
       clientEmail: "service-account@my-project.iam.gserviceaccount.com"
@@ -122,7 +122,7 @@ config:
     # OpenStack Swift backend
     openstackSwift:
       enabled: false  # Set to true to use Swift backend
-      authUrl: "https://auth.cloud.com/v2.0"
+      authURL: "https://auth.cloud.com/v2.0"
       tenantName: "my-tenant"
       userName: "my-user"
       password: "my-password"
