@@ -21,30 +21,53 @@
 
 ## Installation
 
-### Add the repository (if published)
-
-```bash
-helm repo add s3proxy <REPO_URL>
-helm repo update
-```
-
 ### Install the chart
 
 ```bash
 # Install with default values (filesystem backend)
-helm install my-s3proxy ./{{ template "chart.name" . }}
+helm install my-s3proxy oci://ghcr.io/comet-ml/{{ template "chart.name" . }}
 
 # Install with custom values
-helm install my-s3proxy ./{{ template "chart.name" . }} -f my-values.yaml
+helm install my-s3proxy oci://ghcr.io/comet-ml/{{ template "chart.name" . }} -f override-values.yaml
 ```
 
 ## Configuration
 
 The following section lists the configurable parameters of the {{ template "chart.name" . }} chart and their default values.
 
-### General Parameters
+{{- define "renderMarkdownLine" }}
+  {{- $code := (mustRegexReplaceAll "\x60([^\x60]*)\x60" . "<code>${1}</code>") }}
+  {{- $italStar := (mustRegexReplaceAll `([^\*]|\*\*)\*([^ \*].*[^ \*]|[^ \*])\*([^\*]|\*\*)` $code "${1}<i>${2}</i>${3}") }}
+  {{- $italScore := (mustRegexReplaceAll "( |__)_([^ _].*[^ _]|[^ _])_( |__)" $italStar "${1}<i>${2}</i>${3}") }}
+  {{- $boldStar := (mustRegexReplaceAll `\*\*([^ \*].*[^ \*]|[^ \*])\*\*` $italScore "<b>${1}</b>") }}
+  {{- $boldScore := (mustRegexReplaceAll "__([^ _].*[^ _]|[^ _])__" $boldStar "<b>${1}</b>") }}
+  {{- $boldScore }}
+{{- end -}}
 
-{{ template "chart.valuesSection" . }}
+{{- define "chart.valuesTableHtml" }}
+*Scroll sideways to see all columns.*
+
+<table>
+	<thead>
+		<th>Key</th>
+		<th>Description</th>
+		<th>Type</th>
+		<th>Default</th>
+	</thead>
+	<tbody>
+	{{- range .Values }}
+		<tr>
+			<td><code>{{ .Key }}</code></td>
+			<td>{{ template "renderMarkdownLine" (default .AutoDescription .Description) }}</td>
+			<td><code>{{ .Type }}</code></td>
+			<td>{{ template "renderMarkdownLine" (default .AutoDefault .Default) }}</td>
+		</tr>
+	{{- end }}
+	</tbody>
+</table>
+{{- end }}
+
+{{ template "chart.valuesSectionHtml" . }}
 
 ## Usage Examples
 
