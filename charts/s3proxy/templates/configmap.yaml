@@ -109,8 +109,12 @@ data:
   {{- if .Values.config.backends.s3.endpoint }}
     jclouds.endpoint={{ .Values.config.backends.s3.endpoint }}
   {{- end }}
-    # Credentials will be merged from the secret properties file
-    # jclouds.identity and jclouds.credential will be provided by the secret
+  {{- if .Values.config.backends.s3.accessKeyID }}
+    jclouds.identity={{ .Values.config.backends.s3.accessKeyID }}
+  {{- end }}
+  {{- if .Values.config.backends.s3.secretAccessKey.value }}
+    # Credential will be merged from the secret properties file
+  {{- end }}
 {{- end }}
 
 {{- if .Values.config.backends.azureblob.enabled }}
@@ -122,8 +126,12 @@ data:
   {{- if .Values.config.backends.azureblob.endpoint }}
     jclouds.azureblob.endpoint={{ .Values.config.backends.azureblob.endpoint }}
   {{- end }}
+  {{- if .Values.config.backends.azureblob.account }}
+    jclouds.identity={{ .Values.config.backends.azureblob.account }}
+  {{- end }}
+  {{- if or .Values.config.backends.azureblob.key.value .Values.config.backends.azureblob.sasToken.value }}
     # Credentials will be merged from the secret properties file
-    # jclouds.identity, jclouds.credential, and jclouds.azureblob.sas will be provided by the secret
+  {{- end }}
 {{- end }}
 
 {{- if .Values.config.backends.googleCloudStorage.enabled }}
@@ -153,8 +161,12 @@ data:
 
     # Backblaze B2 backend configuration
     jclouds.provider=b2
-    # Credentials will be merged from the secret properties file
-    # jclouds.identity and jclouds.credential will be provided by the secret
+  {{- if .Values.config.backends.b2.account }}
+    jclouds.identity={{ .Values.config.backends.b2.account }}
+  {{- end }}
+  {{- if .Values.config.backends.b2.applicationKey.value }}
+    # Credential will be merged from the secret properties file
+  {{- end }}
 {{- end }}
 
 {{- if .Values.config.backends.openstackSwift.enabled }}
@@ -169,8 +181,12 @@ data:
   {{- if .Values.config.backends.openstackSwift.region }}
     jclouds.region={{ .Values.config.backends.openstackSwift.region }}
   {{- end }}
-    # Credentials will be merged from the secret properties file
-    # jclouds.identity and jclouds.credential will be provided by the secret
+  {{- if and .Values.config.backends.openstackSwift.tenantName .Values.config.backends.openstackSwift.userName }}
+    jclouds.identity={{ printf "%s:%s" .Values.config.backends.openstackSwift.tenantName .Values.config.backends.openstackSwift.userName }}
+  {{- end }}
+  {{- if .Values.config.backends.openstackSwift.password.value }}
+    # Credential will be merged from the secret properties file
+  {{- end }}
 {{- end }}
 
 {{- if .Values.config.backends.rackspaceCloudfiles.enabled }}
@@ -183,6 +199,10 @@ data:
   {{- else }}
     jclouds.provider=rackspace-cloudfiles-us
   {{- end }}
-    # Credentials will be merged from the secret properties file
-    # jclouds.identity and jclouds.credential will be provided by the secret
+  {{- if .Values.config.backends.rackspaceCloudfiles.userName }}
+    jclouds.identity={{ .Values.config.backends.rackspaceCloudfiles.userName }}
+  {{- end }}
+  {{- if .Values.config.backends.rackspaceCloudfiles.apiKey.value }}
+    # Credential will be merged from the secret properties file
+  {{- end }}
 {{- end }}

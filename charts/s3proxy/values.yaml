@@ -183,8 +183,14 @@ config:
       endpoint: ""
       # -- S3 Access Key ID for backend
       accessKeyID: ""
-      # -- S3 Secret Access Key for backend
-      secretAccessKey: ""
+      # -- S3 Secret Access Key configuration
+      secretAccessKey:
+        # -- Secret access key value
+        value: ""
+        # -- Name of existing secret containing the secret access key
+        existingSecret: ""
+        # -- Key in the existing secret containing the secret access key
+        secretKey: "secretAccessKey"
 
     azureblob:
       # -- Enable Azure Blob Storage backend
@@ -193,12 +199,24 @@ config:
       provider: "azureblob"
       # -- Storage account name
       account: ""
-      # -- Storage account key
-      key: ""
+      # -- Storage account key configuration
+      key:
+        # -- Storage account key value
+        value: ""
+        # -- Name of existing secret containing the storage account key
+        existingSecret: ""
+        # -- Key in the existing secret containing the storage account key
+        secretKey: "accountKey"
       # -- Azure endpoint
       endpoint: ""
-      # -- SAS token
-      sasToken: ""
+      # -- SAS token configuration
+      sasToken:
+        # -- SAS token value
+        value: ""
+        # -- Name of existing secret containing the SAS token
+        existingSecret: ""
+        # -- Key in the existing secret containing the SAS token
+        secretKey: "sasToken"
 
     googleCloudStorage:
       # -- Enable Google Cloud Storage backend
@@ -221,8 +239,14 @@ config:
       enabled: false
       # -- B2 account ID
       account: ""
-      # -- B2 application key
-      applicationKey: ""
+      # -- B2 application key configuration
+      applicationKey:
+        # -- Application key value
+        value: ""
+        # -- Name of existing secret containing the application key
+        existingSecret: ""
+        # -- Key in the existing secret containing the application key
+        secretKey: "applicationKey"
 
     openstackSwift:
       # -- Enable OpenStack Swift backend
@@ -233,8 +257,14 @@ config:
       tenantName: ""
       # -- Username
       userName: ""
-      # -- Password
-      password: ""
+      # -- Password configuration
+      password:
+        # -- Password value
+        value: ""
+        # -- Name of existing secret containing the password
+        existingSecret: ""
+        # -- Key in the existing secret containing the password
+        secretKey: "password"
       # -- Region
       region: ""
 
@@ -245,8 +275,14 @@ config:
       region: "us"
       # -- Username
       userName: ""
-      # -- API key
-      apiKey: ""
+      # -- API key configuration
+      apiKey:
+        # -- API key value
+        value: ""
+        # -- Name of existing secret containing the API key
+        existingSecret: ""
+        # -- Key in the existing secret containing the API key
+        secretKey: "apiKey"
 
 persistence:
   # -- Enable persistence using PVC
