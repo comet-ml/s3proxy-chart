@@ -67,57 +67,54 @@ config:
       region: "us-west-2"
       # endpoint: "https://s3.amazonaws.com"  # Optional custom endpoint (e.g., MinIO, Ceph)
       accessKeyID: "AKIAIOSFODNN7EXAMPLE"
-      secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+      secretAccessKey:
+        value: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+        # existingSecret: "my-s3-secret"
+        # secretKey: "secretAccessKey"
 
     # Azure Blob Storage backend
     azureblob:
       enabled: false  # Set to true to use Azure Blob backend
       provider: "azureblob"  # Can be "azureblob" or "azureblob-sdk"
       account: "mystorageaccount"
-      key: "base64encodedkey=="
+      key:
+        value: "base64encodedkey=="
+        # existingSecret: "my-azure-secret"
+        # secretKey: "accountKey"
       # endpoint: "https://mystorageaccount.blob.core.windows.net"  # Optional
-      # sasToken: ""  # Optional SAS token
+      sasToken:
+        value: ""  # Optional SAS token
+        # existingSecret: "my-azure-sas-secret"
+        # secretKey: "sasToken"
 
     # Google Cloud Storage backend
     googleCloudStorage:
       enabled: false  # Set to true to use GCS backend
       projectID: "my-project"
 
-      # Service account email or user email (required for both authentication methods)
+      # Service account email or user email
       clientEmail: "service-account@my-project.iam.gserviceaccount.com"
 
-      # Option 1: Using privateKey directly
-      privateKey: "-----BEGIN RSA PRIVATE KEY-----\n..."
+      # Private key configuration
+      privateKey:
+        # Option 1: Provide private key directly
+        # value: |-
+        #   -----BEGIN RSA PRIVATE KEY-----
+        #   ...
+        #   -----END RSA PRIVATE KEY-----
 
-      # Option 2: Using JSON credentials file (preferred for GCP)
-      # This provides the credential (privateKey) via a mounted file
-      jsonCredentials:
-        enabled: false  # Set to true to use JSON credentials
-
-        # Either provide the JSON content directly:
-        # jsonContent: |
-        #   {
-        #     "type": "service_account",
-        #     "project_id": "my-project",
-        #     "private_key_id": "key-id",
-        #     "private_key": "-----BEGIN RSA PRIVATE KEY-----\n...",
-        #     "client_email": "service-account@my-project.iam.gserviceaccount.com",
-        #     "client_id": "...",
-        #     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        #     "token_uri": "https://oauth2.googleapis.com/token",
-        #     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        #     "client_x509_cert_url": "..."
-        #   }
-
-        # Or reference an existing secret containing the JSON:
-        # existingSecret: "my-gcp-credentials-secret"
-        # secretKey: "credentials.json"  # Key in the secret containing the JSON (default: credentials.json)
+        # Option 2: Reference an existing secret containing the private key
+        # existingSecret: "my-gcs-privatekey-secret"
+        # secretKey: "privateKey"
 
     # Backblaze B2 backend
     b2:
       enabled: false  # Set to true to use B2 backend
       account: "account-id"
-      applicationKey: "application-key"
+      applicationKey:
+        value: "application-key"
+        # existingSecret: "my-b2-secret"
+        # secretKey: "applicationKey"
 
     # OpenStack Swift backend
     openstackSwift:
@@ -125,7 +122,10 @@ config:
       authURL: "https://auth.cloud.com/v2.0"
       tenantName: "my-tenant"
       userName: "my-user"
-      password: "my-password"
+      password:
+        value: "my-password"
+        # existingSecret: "my-swift-secret"
+        # secretKey: "password"
       region: "RegionOne"
 
     # Rackspace Cloud Files backend
@@ -133,7 +133,10 @@ config:
       enabled: false  # Set to true to use Rackspace Cloud Files backend
       region: "us"  # Region: "us" or "uk"
       userName: "my-user"
-      apiKey: "my-api-key"
+      apiKey:
+        value: "my-api-key"
+        # existingSecret: "my-rackspace-secret"
+        # secretKey: "apiKey"
 
 # Persistence settings for filesystem backend
 persistence:
@@ -233,4 +236,3 @@ extraEnvVars:
 #               values:
 #                 - s3proxy
 #         topologyKey: kubernetes.io/hostname
-

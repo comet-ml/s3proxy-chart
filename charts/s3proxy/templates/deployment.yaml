@@ -157,9 +157,10 @@ spec:
               mountPath: {{ .Values.config.backends.filesystem.basedir }}
   {{- end }}
 {{- end }}
-{{- if and .Values.config.backends.googleCloudStorage.enabled .Values.config.backends.googleCloudStorage.jsonCredentials.enabled }}
-            - name: gcp-json-credentials
-              mountPath: /gcp-credentials
+{{- if and .Values.config.backends.googleCloudStorage.enabled .Values.config.backends.googleCloudStorage.privateKey.existingSecret }}
+            - name: gcp-private-key
+              mountPath: /credentials/gcs-private.key
+              subPath: gcs-private.key
               readOnly: true
 {{- end }}
 {{- with .Values.extraVolumeMounts }}
@@ -181,14 +182,13 @@ spec:
             claimName: {{ .Values.persistence.existingClaim | default (include "s3proxy.fullname" .) }}
   {{- end }}
 {{- end }}
-{{- if and .Values.config.backends.googleCloudStorage.enabled .Values.config.backends.googleCloudStorage.jsonCredentials.enabled }}
-        - name: gcp-json-credentials
+{{- if and .Values.config.backends.googleCloudStorage.enabled .Values.config.backends.googleCloudStorage.privateKey.existingSecret }}
+        - name: gcp-private-key
           secret:
-  {{- if .Values.config.backends.googleCloudStorage.jsonCredentials.jsonContent }}
-            secretName: {{ include "s3proxy.fullname" . }}-gcp-json
-  {{- else if .Values.config.backends.googleCloudStorage.jsonCredentials.existingSecret }}
-            secretName: {{ .Values.config.backends.googleCloudStorage.jsonCredentials.existingSecret }}
-  {{- end }}
+            secretName: {{ .Values.config.backends.googleCloudStorage.privateKey.existingSecret }}
+            items:
+              - key: {{ .Values.config.backends.googleCloudStorage.privateKey.secretKey }}
+                path: gcs-private.key
 {{- end }}
 {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
