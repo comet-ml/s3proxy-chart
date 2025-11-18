@@ -160,7 +160,7 @@ spec:
 {{- if and .Values.config.backends.googleCloudStorage.enabled .Values.config.backends.googleCloudStorage.privateKey.existingSecret }}
             - name: gcp-private-key
               mountPath: /credentials/gcs-private.key
-              subPath: {{ .Values.config.backends.googleCloudStorage.privateKey.secretKey }}
+              subPath: gcs-private.key
               readOnly: true
 {{- end }}
 {{- with .Values.extraVolumeMounts }}
@@ -186,6 +186,9 @@ spec:
         - name: gcp-private-key
           secret:
             secretName: {{ .Values.config.backends.googleCloudStorage.privateKey.existingSecret }}
+            items:
+              - key: {{ .Values.config.backends.googleCloudStorage.privateKey.secretKey }}
+                path: gcs-private.key
 {{- end }}
 {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
