@@ -136,8 +136,16 @@ data:
   {{- if .Values.config.backends.googleCloudStorage.projectID }}
     jclouds.project-id={{ .Values.config.backends.googleCloudStorage.projectID }}
   {{- end }}
-    # Credentials will be merged from the secret properties file
-    # jclouds.identity and jclouds.credential will be provided by the secret
+  {{- if .Values.config.backends.googleCloudStorage.clientEmail }}
+    jclouds.identity={{ .Values.config.backends.googleCloudStorage.clientEmail }}
+  {{- end }}
+  {{- if .Values.config.backends.googleCloudStorage.privateKey.existingSecret }}
+    # Using privateKey from mounted secret file
+    jclouds.credential=/credentials/gcs-private.key
+  {{- else if .Values.config.backends.googleCloudStorage.privateKey.value }}
+    # Private key credential will be merged from the secret properties file
+    # jclouds.credential will be provided by the secret
+  {{- end }}
 {{- end }}
 
 {{- if .Values.config.backends.b2.enabled }}

@@ -83,35 +83,17 @@ config:
       enabled: false  # Set to true to use GCS backend
       projectID: "my-project"
 
-      # Service account email or user email (required for both authentication methods)
+      # Service account email or user email (required for GCS authentication)
       clientEmail: "service-account@my-project.iam.gserviceaccount.com"
 
-      # Option 1: Using privateKey directly
-      privateKey: "-----BEGIN RSA PRIVATE KEY-----\n..."
+      # Private key configuration
+      privateKey:
+        # value: |-
+        #   "-----BEGIN RSA PRIVATE KEY-----..."
 
-      # Option 2: Using JSON credentials file (preferred for GCP)
-      # This provides the credential (privateKey) via a mounted file
-      jsonCredentials:
-        enabled: false  # Set to true to use JSON credentials
-
-        # Either provide the JSON content directly:
-        # jsonContent: |
-        #   {
-        #     "type": "service_account",
-        #     "project_id": "my-project",
-        #     "private_key_id": "key-id",
-        #     "private_key": "-----BEGIN RSA PRIVATE KEY-----\n...",
-        #     "client_email": "service-account@my-project.iam.gserviceaccount.com",
-        #     "client_id": "...",
-        #     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        #     "token_uri": "https://oauth2.googleapis.com/token",
-        #     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        #     "client_x509_cert_url": "..."
-        #   }
-
-        # Or reference an existing secret containing the JSON:
-        # existingSecret: "my-gcp-credentials-secret"
-        # secretKey: "credentials.json"  # Key in the secret containing the JSON (default: credentials.json)
+        # Option 2: Reference an existing secret containing the private key (recommended)
+        # existingSecret: "my-gcs-privatekey-secret"
+        # secretKey: "gcs-private.key"  # Key in the secret containing the private key.
 
     # Backblaze B2 backend
     b2:
@@ -233,4 +215,3 @@ extraEnvVars:
 #               values:
 #                 - s3proxy
 #         topologyKey: kubernetes.io/hostname
-
