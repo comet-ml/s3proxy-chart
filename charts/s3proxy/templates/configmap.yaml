@@ -1,67 +1,66 @@
 {{- define "s3proxy.main.config" -}}
-    # S3Proxy configuration
-    s3proxy.endpoint=http://0.0.0.0:{{ .Values.service.targetPort }}
-    s3proxy.authorization={{ .Values.config.auth.type }}
-{{- if .Values.config.virtualHost }}
-    s3proxy.virtual-host={{ .Values.config.virtualHost }}
-{{- end }}
-
-{{- if ne .Values.config.auth.type "none" }}
-    # Authentication credentials will be merged from the secret properties file
-    # s3proxy.identity and s3proxy.credential will be provided by the secret
-{{- end }}
-
-{{- if .Values.config.cors.enabled }}
-    # CORS configuration
-  {{- if .Values.config.cors.allowOrigins }}
-    s3proxy.cors-allow-origins={{ join " " .Values.config.cors.allowOrigins }}
+# S3Proxy configuration
+s3proxy.endpoint=http://0.0.0.0:{{ .Values.service.targetPort }}
+s3proxy.authorization={{ .Values.config.auth.type }}
+  {{- if .Values.config.virtualHost }}
+s3proxy.virtual-host={{ .Values.config.virtualHost }}
   {{- end }}
-  {{- if .Values.config.cors.allowMethods }}
-    s3proxy.cors-allow-methods={{ join " " .Values.config.cors.allowMethods }}
+
+  {{- if ne .Values.config.auth.type "none" }}
+# Authentication credentials will be merged from the secret properties file
+# s3proxy.identity and s3proxy.credential will be provided by the secret
   {{- end }}
-  {{- if .Values.config.cors.allowHeaders }}
-    s3proxy.cors-allow-headers={{ join " " .Values.config.cors.allowHeaders }}
+
+  {{- if .Values.config.cors.enabled }}
+# CORS configuration
+    {{- if .Values.config.cors.allowOrigins }}
+s3proxy.cors-allow-origins={{ join " " .Values.config.cors.allowOrigins }}
+    {{- end }}
+    {{- if .Values.config.cors.allowMethods }}
+s3proxy.cors-allow-methods={{ join " " .Values.config.cors.allowMethods }}
+    {{- end }}
+    {{- if .Values.config.cors.allowHeaders }}
+s3proxy.cors-allow-headers={{ join " " .Values.config.cors.allowHeaders }}
+    {{- end }}
+s3proxy.cors-allow-credential={{ .Values.config.cors.allowCredential }}
   {{- end }}
-    s3proxy.cors-allow-credential={{ .Values.config.cors.allowCredential }}
-{{- end }}
 
-{{- if .Values.config.buckets.alias }}
-    # Bucket aliasing
-  {{- range $key, $value := .Values.config.buckets.alias }}
-    s3proxy.alias.{{ $key }}={{ $value }}
+  {{- if .Values.config.buckets.alias }}
+# Bucket aliasing
+    {{- range $key, $value := .Values.config.buckets.alias }}
+s3proxy.alias.{{ $key }}={{ $value }}
+    {{- end }}
+  {{- end }}
+
+  {{- if .Values.config.buckets.locator }}
+# Bucket locator
+    {{- range $index, $bucket := .Values.config.buckets.locator }}
+s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
+    {{- end }}
+  {{- end }}
+
+  {{- if .Values.config.middlewares.readOnly }}
+# Read-only middleware
+s3proxy.read-only-blobstore=true
+  {{- end }}
+
+  {{- if .Values.config.middlewares.eventualConsistency }}
+# Eventual consistency middleware
+s3proxy.eventual-consistency=true
+  {{- end }}
+
+  {{- if .Values.config.middlewares.shardedBackend }}
+# Sharded backend middleware
+s3proxy.sharded-blobstore=true
+s3proxy.sharded-blobstore.prefix=2
+s3proxy.sharded-blobstore.levels=2
+  {{- end }}
+
+  {{- if .Values.config.middlewares.largeObjectMocking }}
+# Large object mocking middleware
+s3proxy.large-object-mocking=true
   {{- end }}
 {{- end }}
-
-{{- if .Values.config.buckets.locator }}
-    # Bucket locator
-  {{- range $index, $bucket := .Values.config.buckets.locator }}
-    s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
-  {{- end }}
-{{- end }}
-
-{{- if .Values.config.middlewares.readOnly }}
-    # Read-only middleware
-    s3proxy.read-only-blobstore=true
-{{- end }}
-
-{{- if .Values.config.middlewares.eventualConsistency }}
-    # Eventual consistency middleware
-    s3proxy.eventual-consistency=true
-{{- end }}
-
-{{- if .Values.config.middlewares.shardedBackend }}
-    # Sharded backend middleware
-    s3proxy.sharded-blobstore=true
-    s3proxy.sharded-blobstore.prefix=2
-    s3proxy.sharded-blobstore.levels=2
-{{- end }}
-
-{{- if .Values.config.middlewares.largeObjectMocking }}
-    # Large object mocking middleware
-    s3proxy.large-object-mocking=true
-{{- end }}
-{{- end }}
-
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -70,8 +69,8 @@ metadata:
     {{- include "s3proxy.labels" . | nindent 4 }}
 data:
 {{- if .Values.config.backends.filesystem.enabled }}
-  backend-filesystem.properties: |
-{{- include "s3proxy.main.config" . | nindent 4 }}
+  backend-filesystem.properties: |-
+{{ include "s3proxy.main.config" . | nindent 4 }}
 
     # Filesystem backend configuration
   {{- if .Values.config.backends.filesystem.nio2 }}
@@ -83,8 +82,8 @@ data:
 {{- end }}
 
 {{- if .Values.config.backends.transient.enabled }}
-  backend-transient.properties: |
-{{- include "s3proxy.main.config" . | nindent 4 }}
+  backend-transient.properties: |-
+{{ include "s3proxy.main.config" . | nindent 4 }}
 
     # Transient backend configuration
   {{- if .Values.config.backends.transient.nio2 }}
@@ -95,8 +94,8 @@ data:
 {{- end }}
 
 {{- if .Values.config.backends.s3.enabled }}
-  backend-s3.properties: |
-{{- include "s3proxy.main.config" . | nindent 4 }}
+  backend-s3.properties: |-
+{{ include "s3proxy.main.config" . | nindent 4 }}
 
     # S3 backend configuration
   {{- if .Values.config.backends.s3.aws }}
@@ -115,8 +114,8 @@ data:
 {{- end }}
 
 {{- if .Values.config.backends.azureblob.enabled }}
-  backend-azureblob.properties: |
-{{- include "s3proxy.main.config" . | nindent 4 }}
+  backend-azureblob.properties: |-
+{{ include "s3proxy.main.config" . | nindent 4 }}
 
     # Azure Blob backend configuration
     jclouds.provider={{ .Values.config.backends.azureblob.provider }}
@@ -128,8 +127,8 @@ data:
 {{- end }}
 
 {{- if .Values.config.backends.googleCloudStorage.enabled }}
-  backend-google-cloud-storage.properties: |
-{{- include "s3proxy.main.config" . | nindent 4 }}
+  backend-google-cloud-storage.properties: |-
+{{ include "s3proxy.main.config" . | nindent 4 }}
 
     # Google Cloud Storage backend configuration
     jclouds.provider=google-cloud-storage
@@ -149,8 +148,8 @@ data:
 {{- end }}
 
 {{- if .Values.config.backends.b2.enabled }}
-  backend-b2.properties: |
-{{- include "s3proxy.main.config" . | nindent 4 }}
+  backend-b2.properties: |-
+{{ include "s3proxy.main.config" . | nindent 4 }}
 
     # Backblaze B2 backend configuration
     jclouds.provider=b2
@@ -159,8 +158,8 @@ data:
 {{- end }}
 
 {{- if .Values.config.backends.openstackSwift.enabled }}
-  backend-openstack-swift.properties: |
-{{- include "s3proxy.main.config" . | nindent 4 }}
+  backend-openstack-swift.properties: |-
+{{ include "s3proxy.main.config" . | nindent 4 }}
 
     # OpenStack Swift backend configuration
     jclouds.provider=openstack-swift
@@ -175,8 +174,8 @@ data:
 {{- end }}
 
 {{- if .Values.config.backends.rackspaceCloudfiles.enabled }}
-  backend-rackspace-cloudfiles.properties: |
-{{- include "s3proxy.main.config" . | nindent 4 }}
+  backend-rackspace-cloudfiles.properties: |-
+{{ include "s3proxy.main.config" . | nindent 4 }}
 
     # Rackspace Cloud Files backend configuration
   {{- if eq .Values.config.backends.rackspaceCloudfiles.region "uk" }}
