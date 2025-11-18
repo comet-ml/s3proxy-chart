@@ -1,6 +1,6 @@
 # s3proxy
 
-![Version: 0.0.5](https://img.shields.io/badge/Version-0.0.5-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.7.0](https://img.shields.io/badge/AppVersion-2.7.0-informational?style=flat-square)
+![Version: 0.0.6](https://img.shields.io/badge/Version-0.0.6-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.7.0](https://img.shields.io/badge/AppVersion-2.7.0-informational?style=flat-square)
 
 A Helm chart for deploying S3Proxy - Access other storage backends via the S3 API
 
@@ -106,7 +106,25 @@ The following section lists the configurable parameters of the s3proxy chart and
 		</tr>
 		<tr>
 			<td><code>config.backends.azureblob.key</code></td>
-			<td>Storage account key</td>
+			<td>Storage account key configuration</td>
+			<td><code>object</code></td>
+			<td><code>{"existingSecret":"","secretKey":"accountKey","value":""}</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.azureblob.key.existingSecret</code></td>
+			<td>Name of existing secret containing the storage account key</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.azureblob.key.secretKey</code></td>
+			<td>Key in the existing secret containing the storage account key</td>
+			<td><code>string</code></td>
+			<td><code>"accountKey"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.azureblob.key.value</code></td>
+			<td>Storage account key value</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
 		</tr>
@@ -118,7 +136,25 @@ The following section lists the configurable parameters of the s3proxy chart and
 		</tr>
 		<tr>
 			<td><code>config.backends.azureblob.sasToken</code></td>
-			<td>SAS token</td>
+			<td>SAS token configuration</td>
+			<td><code>object</code></td>
+			<td><code>{"existingSecret":"","secretKey":"sasToken","value":""}</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.azureblob.sasToken.existingSecret</code></td>
+			<td>Name of existing secret containing the SAS token</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.azureblob.sasToken.secretKey</code></td>
+			<td>Key in the existing secret containing the SAS token</td>
+			<td><code>string</code></td>
+			<td><code>"sasToken"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.azureblob.sasToken.value</code></td>
+			<td>SAS token value</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
 		</tr>
@@ -130,7 +166,25 @@ The following section lists the configurable parameters of the s3proxy chart and
 		</tr>
 		<tr>
 			<td><code>config.backends.b2.applicationKey</code></td>
-			<td>B2 application key</td>
+			<td>B2 application key configuration</td>
+			<td><code>object</code></td>
+			<td><code>{"existingSecret":"","secretKey":"applicationKey","value":""}</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.b2.applicationKey.existingSecret</code></td>
+			<td>Name of existing secret containing the application key</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.b2.applicationKey.secretKey</code></td>
+			<td>Key in the existing secret containing the application key</td>
+			<td><code>string</code></td>
+			<td><code>"applicationKey"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.b2.applicationKey.value</code></td>
+			<td>Application key value</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
 		</tr>
@@ -160,7 +214,7 @@ The following section lists the configurable parameters of the s3proxy chart and
 		</tr>
 		<tr>
 			<td><code>config.backends.googleCloudStorage.clientEmail</code></td>
-			<td>Service account email or user email (used with both privateKey and jsonCredentials methods)</td>
+			<td>Service account email or user email</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
 		</tr>
@@ -171,38 +225,26 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td><code>false</code></td>
 		</tr>
 		<tr>
-			<td><code>config.backends.googleCloudStorage.jsonCredentials</code></td>
-			<td>JSON credentials configuration</td>
-			<td><code>object</code></td>
-			<td><code>{"enabled":false,"existingSecret":"","jsonContent":"","secretKey":"credentials.json"}</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.googleCloudStorage.jsonCredentials.enabled</code></td>
-			<td>Use JSON credentials file instead of privateKey</td>
-			<td><code>bool</code></td>
-			<td><code>false</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.googleCloudStorage.jsonCredentials.existingSecret</code></td>
-			<td>Name of existing secret containing GCP credentials JSON</td>
-			<td><code>string</code></td>
-			<td><code>""</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.googleCloudStorage.jsonCredentials.jsonContent</code></td>
-			<td>JSON content for creating a new secret (takes precedence over existingSecret)</td>
-			<td><code>string</code></td>
-			<td><code>""</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.googleCloudStorage.jsonCredentials.secretKey</code></td>
-			<td>Key in the secret containing the JSON credentials (default: credentials.json)</td>
-			<td><code>string</code></td>
-			<td><code>"credentials.json"</code></td>
-		</tr>
-		<tr>
 			<td><code>config.backends.googleCloudStorage.privateKey</code></td>
-			<td>Private key (only used when jsonCredentials.enabled is false)</td>
+			<td>Private key configuration</td>
+			<td><code>object</code></td>
+			<td><code>{"existingSecret":"","secretKey":"private.key","value":""}</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.privateKey.existingSecret</code></td>
+			<td>Name of existing secret containing the private key</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.privateKey.secretKey</code></td>
+			<td>Key in the existing secret containing the private key (in PEM format)</td>
+			<td><code>string</code></td>
+			<td><code>"private.key"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.privateKey.value</code></td>
+			<td>Private key value (in PEM format)</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
 		</tr>
@@ -226,7 +268,25 @@ The following section lists the configurable parameters of the s3proxy chart and
 		</tr>
 		<tr>
 			<td><code>config.backends.openstackSwift.password</code></td>
-			<td>Password</td>
+			<td>Password configuration</td>
+			<td><code>object</code></td>
+			<td><code>{"existingSecret":"","secretKey":"password","value":""}</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.openstackSwift.password.existingSecret</code></td>
+			<td>Name of existing secret containing the password</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.openstackSwift.password.secretKey</code></td>
+			<td>Key in the existing secret containing the password</td>
+			<td><code>string</code></td>
+			<td><code>"password"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.openstackSwift.password.value</code></td>
+			<td>Password value</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
 		</tr>
@@ -250,7 +310,25 @@ The following section lists the configurable parameters of the s3proxy chart and
 		</tr>
 		<tr>
 			<td><code>config.backends.rackspaceCloudfiles.apiKey</code></td>
-			<td>API key</td>
+			<td>API key configuration</td>
+			<td><code>object</code></td>
+			<td><code>{"existingSecret":"","secretKey":"apiKey","value":""}</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.rackspaceCloudfiles.apiKey.existingSecret</code></td>
+			<td>Name of existing secret containing the API key</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.rackspaceCloudfiles.apiKey.secretKey</code></td>
+			<td>Key in the existing secret containing the API key</td>
+			<td><code>string</code></td>
+			<td><code>"apiKey"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.rackspaceCloudfiles.apiKey.value</code></td>
+			<td>API key value</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
 		</tr>
@@ -304,7 +382,25 @@ The following section lists the configurable parameters of the s3proxy chart and
 		</tr>
 		<tr>
 			<td><code>config.backends.s3.secretAccessKey</code></td>
-			<td>S3 Secret Access Key for backend</td>
+			<td>S3 Secret Access Key configuration</td>
+			<td><code>object</code></td>
+			<td><code>{"existingSecret":"","secretKey":"secretAccessKey","value":""}</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.s3.secretAccessKey.existingSecret</code></td>
+			<td>Name of existing secret containing the secret access key</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.s3.secretAccessKey.secretKey</code></td>
+			<td>Key in the existing secret containing the secret access key</td>
+			<td><code>string</code></td>
+			<td><code>"secretAccessKey"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.s3.secretAccessKey.value</code></td>
+			<td>Secret access key value</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
 		</tr>
