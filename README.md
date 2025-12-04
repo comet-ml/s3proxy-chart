@@ -1,6 +1,6 @@
 # s3proxy
 
-![Version: 0.0.6](https://img.shields.io/badge/Version-0.0.6-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.7.0](https://img.shields.io/badge/AppVersion-2.7.0-informational?style=flat-square)
+![Version: 0.0.7](https://img.shields.io/badge/Version-0.0.7-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.7.0](https://img.shields.io/badge/AppVersion-2.7.0-informational?style=flat-square)
 
 A Helm chart for deploying S3Proxy - Access other storage backends via the S3 API
 
@@ -102,7 +102,7 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td><code>config.backends.azureblob.endpoint</code></td>
 			<td>Azure endpoint</td>
 			<td><code>string</code></td>
-			<td><code>""</code></td>
+			<td><code>https://{{ .Values.config.backends.azureblob.account }}.blob.core.windows.net</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.azureblob.key</code></td>
