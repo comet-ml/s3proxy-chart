@@ -207,8 +207,9 @@ config:
         existingSecret: ""
         # -- Key in the existing secret containing the storage account key
         secretKey: "accountKey"
-      # -- Azure endpoint
-      endpoint: ""
+      # -- (string) Azure endpoint
+      # @default -- `https://{{ .Values.config.backends.azureblob.account }}.blob.core.windows.net`
+      endpoint:
       # -- SAS token configuration
       sasToken:
         # -- SAS token value

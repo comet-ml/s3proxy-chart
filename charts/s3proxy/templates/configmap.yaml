@@ -124,7 +124,7 @@ data:
     # Azure Blob backend configuration
     jclouds.provider={{ .Values.config.backends.azureblob.provider }}
   {{- if .Values.config.backends.azureblob.endpoint }}
-    jclouds.azureblob.endpoint={{ .Values.config.backends.azureblob.endpoint }}
+    jclouds.azureblob.endpoint={{ .Values.config.backends.azureblob.endpoint | default (printf "https://%s.blob.core.windows.net" .Values.config.backends.azureblob.account) }}
   {{- end }}
   {{- if .Values.config.backends.azureblob.account }}
     jclouds.identity={{ .Values.config.backends.azureblob.account }}
