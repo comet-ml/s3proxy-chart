@@ -1,6 +1,6 @@
 # s3proxy
 
-![Version: 0.0.7](https://img.shields.io/badge/Version-0.0.7-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.7.0](https://img.shields.io/badge/AppVersion-2.7.0-informational?style=flat-square)
+![Version: 0.0.8](https://img.shields.io/badge/Version-0.0.8-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.7.0](https://img.shields.io/badge/AppVersion-2.7.0-informational?style=flat-square)
 
 A Helm chart for deploying S3Proxy - Access other storage backends via the S3 API
 
@@ -641,6 +641,12 @@ The following section lists the configurable parameters of the s3proxy chart and
 		<tr>
 			<td><code>podAnnotations</code></td>
 			<td>Annotations to add to the pod</td>
+			<td><code>object</code></td>
+			<td><code>{}</code></td>
+		</tr>
+		<tr>
+			<td><code>podLabels</code></td>
+			<td>Extra labels to add to the pod (merged with the chart's selector labels)</td>
 			<td><code>object</code></td>
 			<td><code>{}</code></td>
 		</tr>
