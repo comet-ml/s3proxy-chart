@@ -39,6 +39,9 @@ serviceAccount:
 # -- Annotations to add to the pod
 podAnnotations: {}
 
+# -- Extra labels to add to the pod (merged with the chart's selector labels)
+podLabels: {}
+
 # -- Pod security context
 podSecurityContext: {}
 
