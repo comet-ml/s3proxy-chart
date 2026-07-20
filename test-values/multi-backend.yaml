@@ -1,0 +1,28 @@
+# Render/lint scenario: two backends enabled at once (S3 + Azure Blob).
+# Exercises the if/else-if credential branching in secret.yaml (only the first
+# enabled backend's credentials are emitted) and multiple backend .properties
+# keys + multiple --properties args in the deployment.
+config:
+  auth:
+    type: aws-v4
+    identity: test-access-key
+    secret: test-secret-key
+  backends:
+    filesystem:
+      enabled: false
+    s3:
+      enabled: true
+      aws: false
+      region: us-east-1
+      endpoint: http://minio.example:9000
+      accessKeyID: minio-access-key
+      secretAccessKey:
+        value: minio-secret-key
+    azureblob:
+      enabled: true
+      provider: azureblob
+      account: teststorageaccount
+      key:
+        value: dGVzdC1henVyZS1hY2NvdW50LWtleQ==
+persistence:
+  enabled: false

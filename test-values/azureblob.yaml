@@ -1,0 +1,20 @@
+# Render/lint scenario: Azure Blob backend with account + key, endpoint unset.
+# Exercises the computed-default-endpoint code path (see DND-1416: the endpoint
+# line is currently guarded so the default is unreachable — a per-backend render
+# test makes that regression visible in the diff).
+config:
+  auth:
+    type: aws-v4
+    identity: test-access-key
+    secret: test-secret-key
+  backends:
+    filesystem:
+      enabled: false
+    azureblob:
+      enabled: true
+      provider: azureblob
+      account: teststorageaccount
+      key:
+        value: dGVzdC1henVyZS1hY2NvdW50LWtleQ==
+persistence:
+  enabled: false

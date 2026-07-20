@@ -1,0 +1,15 @@
+# Render/lint scenario: filesystem backend (default) with a PVC.
+config:
+  logLevel: INFO
+  auth:
+    type: aws-v4
+    identity: test-access-key
+    secret: test-secret-key
+  backends:
+    filesystem:
+      enabled: true
+      nio2: true
+      basedir: /data/s3proxy
+persistence:
+  enabled: true
+  size: 1Gi

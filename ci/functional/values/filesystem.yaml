@@ -1,0 +1,18 @@
+# Functional-test values: filesystem backend (self-contained, no mock needed).
+config:
+  auth:
+    type: aws-v4
+    identity: test-access-key
+    secret: test-secret-key
+  backends:
+    filesystem:
+      enabled: true
+      nio2: true
+      basedir: /data/s3proxy
+persistence:
+  enabled: true
+  size: 1Gi
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
