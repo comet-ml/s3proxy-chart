@@ -5,8 +5,12 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - charts/s3proxy/**
+    # No `paths:` filter on purpose. `verify-version` is a REQUIRED status check
+    # (branch ruleset on main). With a path filter, PRs that don't touch
+    # charts/s3proxy/** would skip this job, the required check would never be
+    # reported, and the PR would be blocked forever ("Expected — waiting for
+    # status"). Instead the job always runs and no-ops (passes) when the chart is
+    # not modified — see the "Detect chart changes" step below.
 
 jobs:
   verify-version:
@@ -22,8 +26,22 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      - name: Detect chart changes
+        id: changes
+        run: |
+          # cwd is ./charts/s3proxy (job default), so `-- .` scopes the diff to the chart.
+          if git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD -- . | grep -q .
+          then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Chart files changed — running version check."
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No changes under charts/s3proxy/** — version check is a no-op for this PR."
+          fi
+
       - name: Get current chart version
         id: current_version
+        if: steps.changes.outputs.changed == 'true'
         run: |
           CURRENT_VERSION=$(yq '.version' Chart.yaml)
           echo "Current Chart version: $CURRENT_VERSION"
@@ -31,6 +49,7 @@ jobs:
 
       - name: Get latest release version
         id: latest_release
+        if: steps.changes.outputs.changed == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -76,13 +95,13 @@ jobs:
           git checkout HEAD -- Chart.yaml
 
       - name: Install semver comparison tool
-        if: steps.latest_release.outputs.has_release == 'true'
+        if: steps.changes.outputs.changed == 'true' && steps.latest_release.outputs.has_release == 'true'
         run: |
           # Install Node.js semver tool for accurate version comparison
           npm install -g semver
 
       - name: Compare versions
-        if: steps.latest_release.outputs.has_release == 'true'
+        if: steps.changes.outputs.changed == 'true' && steps.latest_release.outputs.has_release == 'true'
         run: |
           CURRENT_VERSION="${{ steps.current_version.outputs.version }}"
           RELEASE_VERSION="${{ steps.latest_release.outputs.version }}"
@@ -125,7 +144,12 @@ jobs:
         if: always()
         run: |
           # Write to GitHub workflow summary
-          if [ "${{ steps.latest_release.outputs.has_release }}" != "true" ]
+          if [ "${{ steps.changes.outputs.changed }}" != "true" ]
+          then
+            echo "## 📋 Chart Version Check Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Status:** No changes under \`charts/s3proxy/**\` — version check not required for this PR." >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.latest_release.outputs.has_release }}" != "true" ]
           then
             echo "## 📋 Chart Version Check Summary" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
