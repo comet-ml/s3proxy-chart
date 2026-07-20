@@ -16,6 +16,16 @@ name: Functional Test (kind)
 #                              fixes the endpoint property (jclouds.azureblob.endpoint
 #                              -> jclouds.endpoint); the failing round-trip is the
 #                              functional test demonstrably catching that regression.
+#   multi-backend           -> s3 (MinIO) + azureblob (Azurite) + filesystem (PVC)
+#                              in ONE release, round-tripping one bucket per backend
+#                              (smoke-s3-*/smoke-az-*/smoke-fs-*). NON-BLOCKING:
+#                              cannot pass on current main — blocked by DND-1442 and
+#                              DND-1416, plus two multi-backend chart gaps (secret.yaml
+#                              emits only the first enabled backend's jclouds.credential
+#                              into the shared secret.properties, and there is no
+#                              per-backend bucket-locator to route buckets between
+#                              backends on the shared endpoint). See the notes in
+#                              ci/functional/values/multi-backend.yaml.
 # Each soft_fail leg auto-goes-green once its bug is fixed.
 # gcs/b2/openstack-swift/rackspace are render-only (covered by lint-render + helm-diff):
 # gcs has no jclouds.endpoint override in the chart, and the others have no
@@ -57,6 +67,11 @@ jobs:
             values: ci/functional/values/azureblob.yaml
             mock: ci/functional/mocks/azurite.yaml
             soft_fail: true
+          - backend: multi-backend
+            values: ci/functional/values/multi-backend.yaml
+            mock: ci/functional/mocks/minio.yaml ci/functional/mocks/azurite.yaml
+            buckets: smoke-s3 smoke-az smoke-fs
+            soft_fail: true
     env:
       NAMESPACE: s3proxy-test
       RELEASE: s3proxy
@@ -75,11 +90,16 @@ jobs:
       - name: Create namespace
         run: kubectl create namespace "${NAMESPACE}"
 
-      - name: Deploy mock backend (${{ matrix.backend }})
+      - name: Deploy mock backends (${{ matrix.backend }})
         if: matrix.mock
+        # matrix.mock is a space-separated list of manifests (multi-backend
+        # scenarios deploy several mocks).
         run: |
-          kubectl apply -n "${NAMESPACE}" -f "${{ matrix.mock }}"
-          kubectl -n "${NAMESPACE}" rollout status deploy --timeout=180s
+          for mock in ${{ matrix.mock }}
+          do
+            kubectl apply -n "${NAMESPACE}" -f "${mock}"
+          done
+          kubectl -n "${NAMESPACE}" wait --for=condition=Available deploy --all --timeout=180s
 
       - name: Install s3proxy
         run: |
@@ -89,9 +109,14 @@ jobs:
             --wait --timeout 5m
 
       - name: Smoke test (S3 round-trip)
+        # matrix.buckets is a space-separated list of bucket prefixes — one
+        # round-trip per prefix (multi-backend scenarios use one per backend).
         run: |
           chmod +x ci/functional/smoke-test.sh
-          ci/functional/smoke-test.sh "${RELEASE}" "${NAMESPACE}" 9000 test-access-key test-secret-key
+          for prefix in ${{ matrix.buckets || 'smoke' }}
+          do
+            ci/functional/smoke-test.sh "${RELEASE}" "${NAMESPACE}" 9000 test-access-key test-secret-key "${prefix}"
+          done
 
       - name: Diagnostics on failure
         if: failure()
