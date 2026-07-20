@@ -1,0 +1,14 @@
+# Render/lint scenario: transient (in-memory) backend, no persistence.
+config:
+  auth:
+    type: aws-v4
+    identity: test-access-key
+    secret: test-secret-key
+  backends:
+    filesystem:
+      enabled: false
+    transient:
+      enabled: true
+      nio2: true
+persistence:
+  enabled: false

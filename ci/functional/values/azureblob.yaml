@@ -1,0 +1,29 @@
+# Functional-test values: Azure Blob backend pointed at the in-cluster Azurite
+# mock (ci/functional/mocks/azurite.yaml -> Service "azurite:10000") using
+# Azurite's well-known devstoreaccount1 credentials.
+#
+# NOTE: expected to FAIL against current main until DND-1416 is fixed — the chart
+# emits jclouds.azureblob.endpoint (typo) instead of jclouds.endpoint, so the
+# custom Azurite endpoint is ignored. This leg runs non-blocking in CI and is a
+# live demonstration that the functional test catches the regression.
+config:
+  auth:
+    type: aws-v4
+    identity: test-access-key
+    secret: test-secret-key
+  backends:
+    filesystem:
+      enabled: false
+    azureblob:
+      enabled: true
+      provider: azureblob
+      account: devstoreaccount1
+      endpoint: http://azurite:10000/devstoreaccount1
+      key:
+        value: Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+persistence:
+  enabled: false
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi

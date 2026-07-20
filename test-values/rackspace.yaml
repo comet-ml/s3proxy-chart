@@ -1,0 +1,17 @@
+# Render/lint scenario: Rackspace Cloud Files backend (US region).
+config:
+  auth:
+    type: aws-v4
+    identity: test-access-key
+    secret: test-secret-key
+  backends:
+    filesystem:
+      enabled: false
+    rackspaceCloudfiles:
+      enabled: true
+      region: us
+      userName: test-user
+      apiKey:
+        value: test-api-key
+persistence:
+  enabled: false

@@ -1,0 +1,21 @@
+# Render/lint scenario: S3 backend (aws-s3 provider) with a custom endpoint.
+# Exercises the jclouds.region / jclouds.endpoint / jclouds.identity render path
+# and the S3 credential branch in secret.yaml.
+config:
+  auth:
+    type: aws-v4
+    identity: test-access-key
+    secret: test-secret-key
+  backends:
+    filesystem:
+      enabled: false
+    s3:
+      enabled: true
+      aws: true
+      region: us-east-1
+      endpoint: https://s3.us-east-1.amazonaws.com
+      accessKeyID: AKIAIOSFODNN7EXAMPLE
+      secretAccessKey:
+        value: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+persistence:
+  enabled: false

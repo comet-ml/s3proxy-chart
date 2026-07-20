@@ -1,0 +1,21 @@
+# Render/lint scenario: Google Cloud Storage backend using an existing secret
+# for the private key. Exercises the gcs-private-key volume + volumeMount +
+# `jclouds.credential=/credentials/gcs-private.key` render path in
+# deployment.yaml and configmap.yaml.
+config:
+  auth:
+    type: aws-v4
+    identity: test-access-key
+    secret: test-secret-key
+  backends:
+    filesystem:
+      enabled: false
+    googleCloudStorage:
+      enabled: true
+      projectID: test-project
+      clientEmail: s3proxy@test-project.iam.gserviceaccount.com
+      privateKey:
+        existingSecret: gcs-private-key
+        secretKey: private.key
+persistence:
+  enabled: false

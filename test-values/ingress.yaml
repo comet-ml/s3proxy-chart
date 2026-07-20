@@ -1,0 +1,55 @@
+# Render/lint scenario: exposure + extras on top of the filesystem backend.
+# Exercises ingress (className/hosts/tls), CORS, podLabels/podAnnotations merge,
+# extraEnvVars, resources, and a created ServiceAccount.
+# NOTE: autoscaling is intentionally NOT enabled here — hpa.yaml still emits the
+# removed autoscaling/v2beta1 API, which kubeconform (strict, modern K8s) rejects
+# (tracked in DND-1443). Add an autoscaling scenario once that is fixed.
+config:
+  auth:
+    type: aws-v4
+    identity: test-access-key
+    secret: test-secret-key
+  cors:
+    enabled: true
+    allowOrigins:
+      - https://app.example.com
+    allowCredential: true
+  backends:
+    filesystem:
+      enabled: true
+      nio2: true
+      basedir: /data/s3proxy
+serviceAccount:
+  create: true
+podLabels:
+  team: storage
+  cost-center: "1234"
+podAnnotations:
+  prometheus.io/scrape: "true"
+extraEnvVars:
+  - name: JAVA_OPTS
+    value: "-Xmx1g -Xms256m"
+resources:
+  limits:
+    cpu: "1"
+    memory: 2Gi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  hosts:
+    - host: s3.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: s3proxy-tls
+      hosts:
+        - s3.example.com
+persistence:
+  enabled: true
+  size: 1Gi

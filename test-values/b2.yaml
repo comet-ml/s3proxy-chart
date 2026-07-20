@@ -1,0 +1,16 @@
+# Render/lint scenario: Backblaze B2 backend.
+config:
+  auth:
+    type: aws-v4
+    identity: test-access-key
+    secret: test-secret-key
+  backends:
+    filesystem:
+      enabled: false
+    b2:
+      enabled: true
+      account: b2-account-id
+      applicationKey:
+        value: b2-application-key
+persistence:
+  enabled: false
