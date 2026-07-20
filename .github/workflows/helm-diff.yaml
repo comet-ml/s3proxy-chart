@@ -3,8 +3,12 @@ name: Helm Render Diff
 # Informational: renders every test-values scenario on both the PR base and head,
 # diffs the resulting Kubernetes manifests, and posts a sticky PR comment so
 # reviewers can see exactly what a change does to the rendered output.
-# Runs on GitHub-hosted runners with only public actions (public repo, no secrets
-# beyond the automatic GITHUB_TOKEN). Never fails the PR.
+#
+# This ports the diff/report logic from comet-ml/gha-tools helm/helm-diff, but
+# runs self-contained on GitHub-hosted runners with public actions — that private
+# action runs on the self-hosted `helm` runner and can't be used from a public
+# repo (fork PRs can't pull a private action, and self-hosted runners must not run
+# fork code). Never fails the PR (the hard gate is lint-render.yaml).
 
 on:
   pull_request:
@@ -14,9 +18,14 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  issues: write
 
 env:
   KUBE_VERSION: "1.29.0"
+  CHART_PATH: charts/s3proxy
+  # Match gha-tools helm-diff defaults so output is consistent with our other charts.
+  RELEASE_NAME: release
+  NAMESPACE: default
 
 jobs:
   render-diff:
@@ -26,13 +35,13 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          path: head
+          path: pr-repo
 
       - name: Checkout base
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ github.event.pull_request.base.sha }}
-          path: base
+          path: base-repo
 
       - name: Set up Helm
         uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
@@ -42,74 +51,169 @@ jobs:
       - name: Render and diff
         run: |
           set -uo pipefail
+
+          # render <repo-dir> <values-relpath> <out-file>
+          # Renders the chart if both the chart dir and the values file exist on
+          # that side; otherwise writes an empty baseline (mirrors gha-tools, so a
+          # values file that only exists on the PR shows up as fully added).
           render() {
-            # render <repo-dir> <values-relpath> <out-file>
             local dir="$1" vals="$2" out="$3"
-            if [ -f "${dir}/${vals}" ] && [ -d "${dir}/charts/s3proxy" ]
+            if [ -f "${dir}/${vals}" ] && [ -d "${dir}/${CHART_PATH}" ]
             then
-              helm template s3proxy "${dir}/charts/s3proxy" \
-                --values "${dir}/${vals}" \
-                --kube-version "${KUBE_VERSION}" > "$out" 2>"${out}.err" || {
-                  echo "render error for ${dir}/${vals}:"
-                  cat "${out}.err"
-                  : > "$out"
-                }
+              if ! helm template "${RELEASE_NAME}" "${dir}/${CHART_PATH}" \
+                    --namespace "${NAMESPACE}" \
+                    --values "${dir}/${vals}" \
+                    --kube-version "${KUBE_VERSION}" > "$out" 2>"${out}.err"
+              then
+                echo "⚠️ render error for ${dir}/${vals}:"
+                cat "${out}.err"
+                : > "$out"
+              fi
             else
               : > "$out"
             fi
           }
 
-          summary=diff-summary.md
-          echo "## 📊 Helm render diff (base vs PR)" > "$summary"
-          echo "" >> "$summary"
-          echo "_Rendered with Kubernetes ${KUBE_VERSION}. Informational only — this check never fails the PR._" >> "$summary"
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          COMMENT_LIMIT=60000
 
-          changed=0
-          for f in head/test-values/*.yaml
+          # Union of scenario files across base and head, so a scenario removed in
+          # the PR (present on base, absent on head) still shows up as a deletion.
+          names="$(
+            { ls -1 pr-repo/test-values/*.yaml base-repo/test-values/*.yaml 2>/dev/null || true; } \
+              | xargs -r -n1 basename | sort -u
+          )"
+
+          # Two parts: a summary table (always small) and the detailed diffs.
+          table=/tmp/table.md
+          details=/tmp/details.md
+          {
+            echo "<!-- helm-render-diff -->"
+            echo "## 📊 Helm Render Diff Summary"
+            echo ""
+            echo "Chart \`${CHART_PATH}\` rendered with Kubernetes \`${KUBE_VERSION}\`. Informational only — this check never fails the PR."
+            echo ""
+            echo "| Values File | Chart Path | Changes | Status |"
+            echo "|-------------|------------|---------|--------|"
+          } > "$table"
+          echo "## 🔍 Detailed Changes" > "$details"
+
+          any_changes=0
+          while IFS= read -r name
           do
-            name="$(basename "$f")"
-            render head "test-values/${name}" "/tmp/head-${name}"
-            render base "test-values/${name}" "/tmp/base-${name}"
-            if ! diff -u "/tmp/base-${name}" "/tmp/head-${name}" > "/tmp/diff-${name}"
+            [ -n "$name" ] || continue
+            render pr-repo   "test-values/${name}" "/tmp/after-${name}"
+            render base-repo "test-values/${name}" "/tmp/before-${name}"
+
+            diff -u "/tmp/before-${name}" "/tmp/after-${name}" > "/tmp/diff-${name}" || true
+
+            if [ -s "/tmp/diff-${name}" ]
             then
-              changed=1
+              any_changes=1
+              # Additions/deletions, excluding the +++/--- file headers (as gha-tools does).
+              additions=$(grep '^+' "/tmp/diff-${name}" | grep -vc '^+++' || true)
+              deletions=$(grep '^-' "/tmp/diff-${name}" | grep -vc '^---' || true)
+              echo "| \`test-values/${name}\` | \`${CHART_PATH}\` | +${additions} -${deletions} | 🔄 **Changes Detected** ([summary](${RUN_URL})) |" >> "$table"
               {
                 echo ""
-                echo "<details><summary>🔄 <code>${name}</code></summary>"
+                echo "### 📝 Changes in \`${CHART_PATH}\` with \`test-values/${name}\`"
+                echo ""
+                echo "<details><summary>🔍 Click to view complete diff</summary>"
                 echo ""
                 echo '```diff'
                 cat "/tmp/diff-${name}"
                 echo '```'
                 echo ""
                 echo "</details>"
-              } >> "$summary"
+              } >> "$details"
+            else
+              echo "| \`test-values/${name}\` | \`${CHART_PATH}\` | - | ✅ No Changes |" >> "$table"
             fi
-          done
+          done <<< "$names"
 
-          if [ "$changed" -eq 0 ]
+          if [ "$any_changes" -eq 0 ]
           then
-            echo "" >> "$summary"
-            echo "_No rendered manifest changes across the test-values scenarios._" >> "$summary"
-          fi
-
-          # Always publish the full diff to the job summary.
-          cat "$summary" >> "$GITHUB_STEP_SUMMARY"
-
-          # Cap the PR comment to stay well under GitHub's 65536-char limit.
-          if [ "$(wc -c < "$summary")" -gt 60000 ]
-          then
-            head -c 60000 "$summary" > diff-comment.md
             {
               echo ""
-              echo "…diff truncated — see the full render diff in the workflow job summary."
-            } >> diff-comment.md
-          else
-            cp "$summary" diff-comment.md
+              echo "### 🎉 No changes detected in any of the tested configurations!"
+            } >> "$table"
           fi
 
-      - name: Post sticky comment
+          # Full report (table + detailed diffs) always goes to the job summary.
+          cat "$table" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$any_changes" -eq 1 ]
+          then
+            {
+              echo ""
+              echo "---"
+              echo ""
+              cat "$details"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # PR comment: table + inline diffs when it fits, otherwise a slimmed
+          # table-only comment linking to the full diffs in the job summary
+          # (mirrors the self-hosted chart's behaviour on large diffs).
+          {
+            cat "$table"
+            if [ "$any_changes" -eq 1 ]
+            then
+              echo ""
+              echo "---"
+              echo ""
+              cat "$details"
+            fi
+          } > /tmp/comment-full.md
+
+          if [ "$(wc -c < /tmp/comment-full.md)" -le "$COMMENT_LIMIT" ]
+          then
+            cp /tmp/comment-full.md diff-comment.md
+          else
+            {
+              cat "$table"
+              echo ""
+              echo "---"
+              echo ""
+              echo "> ℹ️ Per-scenario diffs are omitted from this comment because the full render diff exceeds GitHub's comment size limit. See the complete diffs in the [workflow job summary](${RUN_URL})."
+            } > diff-comment.md
+          fi
+
+      # Match the repo's preview-readme.yaml convention: minimize (collapse) any
+      # previous render-diff comments as OUTDATED, then post a fresh one. Uses
+      # first-party actions/github-script (no third-party comment action).
+      # continue-on-error: fork PRs get a read-only token and cannot comment; the
+      # full diff is still available in the job summary.
+      - name: Minimize outdated diff comments and post the latest
         continue-on-error: true
-        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
-          header: helm-render-diff
-          path: diff-comment.md
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- helm-render-diff -->';
+            const body = fs.readFileSync('diff-comment.md', 'utf8');
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            for (const comment of comments) {
+              if (comment.user.type === 'Bot' && comment.body.includes(marker)) {
+                await github.graphql(
+                  `mutation($id: ID!) {
+                    minimizeComment(input: { subjectId: $id, classifier: OUTDATED }) {
+                      clientMutationId
+                    }
+                  }`,
+                  { id: comment.node_id },
+                );
+              }
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
