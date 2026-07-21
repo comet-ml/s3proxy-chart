@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "s3proxy.fullname" . }}
+  name: {{ include "comet-common.names.fullname" . }}
   labels:
-    {{- include "s3proxy.labels" . | nindent 4 }}
+    {{- include "comet-common.labels.base" . | nindent 4 }}
 spec:
 {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
@@ -29,7 +29,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
 {{- end }}
-      serviceAccountName: {{ include "s3proxy.serviceAccountName" . }}
+      serviceAccountName: {{ include "comet-common.names.serviceAccount" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
@@ -186,17 +186,17 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: {{ include "s3proxy.fullname" . }}
+            name: {{ include "comet-common.names.fullname" . }}
         - name: secret-config
           secret:
-            secretName: {{ include "s3proxy.fullname" . }}
+            secretName: {{ include "comet-common.names.fullname" . }}
         - name: merged-config
           emptyDir: {}
 {{- if .Values.config.backends.filesystem.enabled }}
   {{- if .Values.persistence.enabled }}
         - name: data
           persistentVolumeClaim:
-            claimName: {{ .Values.persistence.existingClaim | default (include "s3proxy.fullname" .) }}
+            claimName: {{ .Values.persistence.existingClaim | default (include "comet-common.names.fullname" .) }}
   {{- end }}
 {{- end }}
 {{- if and .Values.config.backends.googleCloudStorage.enabled .Values.config.backends.googleCloudStorage.privateKey.existingSecret }}
