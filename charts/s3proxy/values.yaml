@@ -211,8 +211,8 @@ config:
     azureblob:
       # -- Enable Azure Blob Storage backend
       enabled: false
-      # -- Provider type (azureblob or azureblob-sdk)
-      provider: "azureblob"
+      # -- Provider type. Defaults to `azureblob-sdk` (Azure SDK): it signs correctly against custom endpoints (Azurite, Azure Gov/China, private endpoints) and is the non-deprecated provider on S3Proxy 3.x. The legacy jclouds `azureblob` provider is deprecated upstream and mis-signs against custom endpoints; on real Azure `azureblob-sdk` may require `regions` to be set for bucket creation.
+      provider: "azureblob-sdk"
       # -- Storage account name
       account: ""
       # -- Storage account key configuration
