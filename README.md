@@ -1,14 +1,37 @@
 # s3proxy
 
-![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 2.7.0](https://img.shields.io/badge/AppVersion-2.7.0-informational?style=flat-square)
+![Version: 0.2.0](https://img.shields.io/badge/Version-0.2.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.3.0](https://img.shields.io/badge/AppVersion-3.3.0-informational?style=flat-square)
 
 A Helm chart for deploying S3Proxy - Access other storage backends via the S3 API
+
+## Requirements
+
+| Repository | Name | Version |
+|------------|------|---------|
+| oci://ghcr.io/comet-ml | comet-common | 0.3.0 |
 
 ## Prerequisites
 
 - Kubernetes 1.19+
 - Helm 3.2.0+
 - PV provisioner support in the underlying infrastructure (if using filesystem backend with persistence)
+
+## S3Proxy version compatibility
+
+The chart tracks S3Proxy (`andrewgaul/s3proxy`) through `appVersion` (currently `3.3.0`); override it with `image.tag`. Minimum supported version is `2.7.0`.
+
+S3Proxy `3.0.0` deprecated the Apache jclouds storage backends (`s3`, `aws-s3`, `azureblob`, `filesystem`, `transient`) in favor of SDK / NIO2 providers. Upstream has announced that `3.3.0` is the last release to bundle jclouds and that future releases "will lack its Atmos and B2 storage backends" (no jclouds-free release has shipped yet; `3.3.0` remains the latest). The jclouds providers still work on 3.x, but are deprecated:
+
+- `filesystem` / `transient`: already default to the non-deprecated `*-nio2` variants (`nio2: true`).
+- `azureblob`: **defaults to `provider: azureblob-sdk`** (the Azure SDK provider, which signs correctly against custom endpoints such as Azurite). The legacy jclouds `azureblob` provider is deprecated and mis-signs against custom endpoints; set `provider: azureblob` only if you specifically need it. On real Azure, `azureblob-sdk` may require `config.backends.azureblob.regions` for bucket creation.
+- `s3`, `googleCloudStorage`, `openstackSwift`: SDK providers exist upstream (`aws-s3-sdk`, `google-cloud-storage-sdk`, `openstack-swift-sdk`). `rackspaceCloudfiles` is OpenStack-Swift-compatible and may be served by `openstack-swift-sdk`. Migrating the chart defaults to the SDK providers is tracked separately.
+- `b2` (and Atmos, if ever added) are jclouds-only with **no SDK successor**. These are the backends upstream has said future releases will drop.
+
+### Our compatibility plan
+
+- **Through S3Proxy `3.3.0` (chart `0.x`):** all current backends, including the jclouds-only `b2`, are supported. This is where the chart sits today.
+- **Guardrail:** the chart **hard-fails at render time** if `b2` (or `atmos`) is enabled while the effective S3Proxy version (`image.tag`, else `appVersion`) is greater than `3.3.0`, so an upgrade past the jclouds sunset cannot silently ship a broken backend. Pin `image.tag` to `3.3.0` or earlier, or disable the backend.
+- **When S3Proxy ships its first jclouds-free release:** the chart moves to `1.x.x` (major bump), migrates the remaining backends to their SDK providers, and drops `b2`/`atmos`. Tracked in the SDK-migration follow-up.
 
 ## Installation
 
@@ -136,9 +159,9 @@ The following section lists the configurable parameters of the s3proxy chart and
 		</tr>
 		<tr>
 			<td><code>config.backends.azureblob.provider</code></td>
-			<td>Provider type (azureblob or azureblob-sdk)</td>
+			<td>Provider type. Defaults to <code>azureblob-sdk</code> (Azure SDK): it signs correctly against custom endpoints (Azurite, Azure Gov/China, private endpoints) and is the non-deprecated provider on S3Proxy 3.x. The legacy jclouds <code>azureblob</code> provider is deprecated upstream and mis-signs against custom endpoints; on real Azure <code>azureblob-sdk</code> may require <code>regions</code> to be set for bucket creation.</td>
 			<td><code>string</code></td>
-			<td><code>"azureblob"</code></td>
+			<td><code>"azureblob-sdk"</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.azureblob.regions</code></td>
