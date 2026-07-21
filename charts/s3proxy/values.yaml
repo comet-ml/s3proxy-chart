@@ -168,12 +168,20 @@ config:
       nio2: true
       # -- Base directory for filesystem backend
       basedir: "/data/s3proxy"
+      # -- jclouds identity. S3Proxy requires jclouds.identity in every backend properties file; the filesystem backend ignores the value, so the "local" placeholder is fine. An empty value falls back to "local".
+      identity: "local"
+      # -- jclouds credential. S3Proxy requires jclouds.credential in every backend properties file; the filesystem backend ignores the value. An empty value falls back to "local".
+      credential: "local"
 
     transient:
       # -- Enable transient (in-memory) backend
       enabled: false
       # -- Use NIO2 implementation (transient-nio2) instead of standard transient
       nio2: true
+      # -- jclouds identity. S3Proxy requires jclouds.identity in every backend properties file; the transient backend ignores the value, so the "local" placeholder is fine. An empty value falls back to "local".
+      identity: "local"
+      # -- jclouds credential. S3Proxy requires jclouds.credential in every backend properties file; the transient backend ignores the value. An empty value falls back to "local".
+      credential: "local"
 
     s3:
       # -- Enable S3 backend
