@@ -60,6 +60,25 @@ s3proxy.sharded-blobstore.levels=2
 s3proxy.large-object-mocking=true
   {{- end }}
 {{- end }}
+{{- /*
+  Guardrail (DND-1418): the jclouds-only backends below have no SDK successor, and
+  upstream has announced they are dropped after S3Proxy 3.3.0. Fail the render if
+  one is enabled while the effective S3Proxy version (image.tag, else appVersion)
+  parses as semver and is greater than 3.3.0, so upgrading past the jclouds sunset
+  cannot silently ship a broken backend. Non-semver tags (master, sha-*) are not
+  version-checked. When S3Proxy ships a jclouds-free release the chart moves to
+  1.x.x and migrates/removes these backends.
+*/}}
+{{- $s3pVersion := .Values.image.tag | default .Chart.AppVersion -}}
+{{- if regexMatch "^v?[0-9]+\\.[0-9]+\\.[0-9]+" $s3pVersion }}
+  {{- if semverCompare "> 3.3.0" (trimPrefix "v" $s3pVersion) }}
+    {{- range $backend := list "b2" "atmos" }}
+      {{- if dig $backend "enabled" false $.Values.config.backends }}
+        {{- fail (printf "config.backends.%s is enabled, but the %q S3Proxy backend relies on Apache jclouds, which is dropped after 3.3.0 (resolved image version %s). Pin image.tag to 3.3.0 or earlier, or disable config.backends.%s. See the chart README 'S3Proxy version compatibility' notes." $backend $backend $s3pVersion $backend) }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
