@@ -32,12 +32,11 @@ s3proxy.alias.{{ $key }}={{ $value }}
     {{- end }}
   {{- end }}
 
-  {{- if .Values.config.buckets.locator }}
-# Bucket locator
-    {{- range $index, $bucket := .Values.config.buckets.locator }}
-s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
-    {{- end }}
-  {{- end }}
+  {{- /* Bucket locators are per-backend: each backend's properties file lists
+         the buckets it owns (see config.backends.<name>.bucketLocators). They are
+         intentionally NOT emitted here in the shared config, because S3Proxy
+         de-duplicates locators across --properties files (first file wins), so a
+         shared list would route every bucket to only the first backend. */}}
 
   {{- if .Values.config.middlewares.readOnly }}
 # Read-only middleware
@@ -83,6 +82,9 @@ data:
     # properties file, even for local backends where the values are unused.
     jclouds.identity={{ .Values.config.backends.filesystem.identity | default "local" }}
     jclouds.credential={{ .Values.config.backends.filesystem.credential | default "local" }}
+  {{- range $index, $bucket := .Values.config.backends.filesystem.bucketLocators }}
+    s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
+  {{- end }}
 {{- end }}
 
 {{- if .Values.config.backends.transient.enabled }}
@@ -99,6 +101,9 @@ data:
     # properties file, even for local backends where the values are unused.
     jclouds.identity={{ .Values.config.backends.transient.identity | default "local" }}
     jclouds.credential={{ .Values.config.backends.transient.credential | default "local" }}
+  {{- range $index, $bucket := .Values.config.backends.transient.bucketLocators }}
+    s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
+  {{- end }}
 {{- end }}
 
 {{- if .Values.config.backends.s3.enabled }}
@@ -123,6 +128,9 @@ data:
   {{- if .Values.config.backends.s3.secretAccessKey.value }}
     # Credential will be merged from the secret properties file
   {{- end }}
+  {{- range $index, $bucket := .Values.config.backends.s3.bucketLocators }}
+    s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
+  {{- end }}
 {{- end }}
 
 {{- if .Values.config.backends.azureblob.enabled }}
@@ -131,14 +139,17 @@ data:
 
     # Azure Blob backend configuration
     jclouds.provider={{ .Values.config.backends.azureblob.provider }}
-  {{- if .Values.config.backends.azureblob.endpoint }}
-    jclouds.azureblob.endpoint={{ .Values.config.backends.azureblob.endpoint | default (printf "https://%s.blob.core.windows.net" .Values.config.backends.azureblob.account) }}
+  {{- if or .Values.config.backends.azureblob.endpoint .Values.config.backends.azureblob.account }}
+    jclouds.endpoint={{ .Values.config.backends.azureblob.endpoint | default (printf "https://%s.blob.core.windows.net" .Values.config.backends.azureblob.account) }}
   {{- end }}
   {{- if .Values.config.backends.azureblob.account }}
     jclouds.identity={{ .Values.config.backends.azureblob.account }}
   {{- end }}
   {{- if or .Values.config.backends.azureblob.key.value .Values.config.backends.azureblob.sasToken.value }}
     # Credentials will be merged from the secret properties file
+  {{- end }}
+  {{- range $index, $bucket := .Values.config.backends.azureblob.bucketLocators }}
+    s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
   {{- end }}
 {{- end }}
 
@@ -161,6 +172,9 @@ data:
     # Private key credential will be merged from the secret properties file
     # jclouds.credential will be provided by the secret
   {{- end }}
+  {{- range $index, $bucket := .Values.config.backends.googleCloudStorage.bucketLocators }}
+    s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
+  {{- end }}
 {{- end }}
 
 {{- if .Values.config.backends.b2.enabled }}
@@ -174,6 +188,9 @@ data:
   {{- end }}
   {{- if .Values.config.backends.b2.applicationKey.value }}
     # Credential will be merged from the secret properties file
+  {{- end }}
+  {{- range $index, $bucket := .Values.config.backends.b2.bucketLocators }}
+    s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
   {{- end }}
 {{- end }}
 
@@ -195,6 +212,9 @@ data:
   {{- if .Values.config.backends.openstackSwift.password.value }}
     # Credential will be merged from the secret properties file
   {{- end }}
+  {{- range $index, $bucket := .Values.config.backends.openstackSwift.bucketLocators }}
+    s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
+  {{- end }}
 {{- end }}
 
 {{- if .Values.config.backends.rackspaceCloudfiles.enabled }}
@@ -212,5 +232,8 @@ data:
   {{- end }}
   {{- if .Values.config.backends.rackspaceCloudfiles.apiKey.value }}
     # Credential will be merged from the secret properties file
+  {{- end }}
+  {{- range $index, $bucket := .Values.config.backends.rackspaceCloudfiles.bucketLocators }}
+    s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
   {{- end }}
 {{- end }}

@@ -27,6 +27,10 @@ spec:
             - 0.0.0.0
             - --blobPort
             - "10000"
+            # Accept any storage API version. The assertion's `az` CLI on the CI
+            # runner sends a newer x-ms-version than this Azurite image knows,
+            # which it would otherwise reject with InvalidHeaderValue.
+            - --skipApiVersionCheck
           ports:
             - name: blob
               containerPort: 10000

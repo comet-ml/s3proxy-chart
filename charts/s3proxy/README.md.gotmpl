@@ -257,17 +257,27 @@ config:
       another-bucket: "actual-bucket-name"
 ```
 
-### Bucket Locator
+### Bucket Locator (routing buckets to backends)
 
-Assign specific buckets to different backends:
+When more than one backend is enabled, assign buckets to a specific backend with
+that backend's own `bucketLocators` list. S3Proxy reads bucket-locators per
+backend, so each list is emitted only into that backend's properties file. Glob
+patterns are supported. A bucket that matches no backend's list falls through to
+the first-enabled backend (the default).
 
 ```yaml
 config:
-  buckets:
-    locator:
-      - "bucket1"
-      - "bucket2"
-      - "*.test"  # Glob patterns supported
+  backends:
+    s3:
+      enabled: true
+      # ... credentials ...
+      bucketLocators:
+        - "prod-*"
+        - "customer-data"
+    filesystem:
+      enabled: true
+      bucketLocators:
+        - "scratch-*"   # everything else also lands here (first-enabled default)
 ```
 
 ## Monitoring

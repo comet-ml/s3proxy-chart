@@ -44,15 +44,18 @@ spec:
               set -e
               echo "Merging configuration files..."
 
-              # Check if secret properties file exists
-              SECRET_FILE="/secret/secret.properties"
+              # secret-common.properties holds the client-facing auth and is
+              # appended to every backend file. Each backend additionally gets
+              # its own secret-<backend>.properties (its jclouds.credential), so
+              # one backend's credential never leaks into another's file.
+              COMMON_SECRET="/secret/secret-common.properties"
 
               # Loop through all properties files in the config directory
               for config_file in /config/*.properties
               do
                 if [ -f "$config_file" ]
                 then
-                  # Get the filename
+                  # Get the filename, e.g. backend-s3.properties
                   filename=$(basename "$config_file")
                   output_file="/merged-config/$filename"
 
@@ -61,11 +64,22 @@ spec:
                   # Copy base config file to output
                   cp "$config_file" "$output_file"
 
-                  # If secret file exists, append its contents (overriding duplicates)
-                  if [ -f "$SECRET_FILE" ]
+                  # Append the shared client-auth secret, if present
+                  if [ -f "$COMMON_SECRET" ]
                   then
                     echo "" >> "$output_file"  # Add newline separator
-                    cat "$SECRET_FILE" >> "$output_file"
+                    cat "$COMMON_SECRET" >> "$output_file"
+                  fi
+
+                  # Append this backend's own secret: backend-<name>.properties
+                  # pairs with secret-<name>.properties
+                  backend="${filename#backend-}"
+                  backend="${backend%.properties}"
+                  backend_secret="/secret/secret-${backend}.properties"
+                  if [ -f "$backend_secret" ]
+                  then
+                    echo "" >> "$output_file"  # Add newline separator
+                    cat "$backend_secret" >> "$output_file"
                   fi
                 fi
               done
