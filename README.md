@@ -201,10 +201,22 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td><code>"/data/s3proxy"</code></td>
 		</tr>
 		<tr>
+			<td><code>config.backends.filesystem.credential</code></td>
+			<td>jclouds credential. S3Proxy requires jclouds.credential in every backend properties file; the filesystem backend ignores the value. An empty value falls back to "local".</td>
+			<td><code>string</code></td>
+			<td><code>"local"</code></td>
+		</tr>
+		<tr>
 			<td><code>config.backends.filesystem.enabled</code></td>
 			<td>Enable filesystem backend</td>
 			<td><code>bool</code></td>
 			<td><code>true</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.filesystem.identity</code></td>
+			<td>jclouds identity. S3Proxy requires jclouds.identity in every backend properties file; the filesystem backend ignores the value, so the "local" placeholder is fine. An empty value falls back to "local".</td>
+			<td><code>string</code></td>
+			<td><code>"local"</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.filesystem.nio2</code></td>
@@ -405,10 +417,22 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td><code>""</code></td>
 		</tr>
 		<tr>
+			<td><code>config.backends.transient.credential</code></td>
+			<td>jclouds credential. S3Proxy requires jclouds.credential in every backend properties file; the transient backend ignores the value. An empty value falls back to "local".</td>
+			<td><code>string</code></td>
+			<td><code>"local"</code></td>
+		</tr>
+		<tr>
 			<td><code>config.backends.transient.enabled</code></td>
 			<td>Enable transient (in-memory) backend</td>
 			<td><code>bool</code></td>
 			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.transient.identity</code></td>
+			<td>jclouds identity. S3Proxy requires jclouds.identity in every backend properties file; the transient backend ignores the value, so the "local" placeholder is fine. An empty value falls back to "local".</td>
+			<td><code>string</code></td>
+			<td><code>"local"</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.transient.nio2</code></td>
