@@ -7,11 +7,10 @@ name: Functional Test (kind)
 #
 # Backend coverage:
 #   s3                      -> MinIO mock, HARD GATE (full S3 round-trip).
-#   filesystem / transient  -> NON-BLOCKING (soft_fail): the chart does not emit
-#                              jclouds.identity/jclouds.credential for local
-#                              backends, so s3proxy refuses to start
-#                              ("Properties file must contain: jclouds.identity
-#                              and jclouds.credential"). Tracked in DND-1442.
+#   filesystem / transient  -> HARD GATE (install + round-trip). The chart now
+#                              emits placeholder jclouds.identity/jclouds.credential
+#                              for local backends (DND-1442), so s3proxy starts and
+#                              serves. These legs guard that fix against regression.
 #   azureblob               -> Azurite mock, NON-BLOCKING (soft_fail) until DND-1416
 #                              fixes the endpoint property (jclouds.azureblob.endpoint
 #                              -> jclouds.endpoint); the failing round-trip is the
@@ -59,10 +58,8 @@ jobs:
             mock: ci/functional/mocks/minio.yaml
           - backend: filesystem
             values: ci/functional/values/filesystem.yaml
-            soft_fail: true
           - backend: transient
             values: ci/functional/values/transient.yaml
-            soft_fail: true
           - backend: azureblob
             values: ci/functional/values/azureblob.yaml
             mock: ci/functional/mocks/azurite.yaml

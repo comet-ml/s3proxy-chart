@@ -79,6 +79,10 @@ data:
     jclouds.provider=filesystem
   {{- end }}
     jclouds.filesystem.basedir={{ .Values.config.backends.filesystem.basedir }}
+    # S3Proxy requires jclouds.identity and jclouds.credential in every backend
+    # properties file, even for local backends where the values are unused.
+    jclouds.identity={{ .Values.config.backends.filesystem.identity | default "local" }}
+    jclouds.credential={{ .Values.config.backends.filesystem.credential | default "local" }}
 {{- end }}
 
 {{- if .Values.config.backends.transient.enabled }}
@@ -91,6 +95,10 @@ data:
   {{- else }}
     jclouds.provider=transient
   {{- end }}
+    # S3Proxy requires jclouds.identity and jclouds.credential in every backend
+    # properties file, even for local backends where the values are unused.
+    jclouds.identity={{ .Values.config.backends.transient.identity | default "local" }}
+    jclouds.credential={{ .Values.config.backends.transient.credential | default "local" }}
 {{- end }}
 
 {{- if .Values.config.backends.s3.enabled }}
