@@ -93,6 +93,12 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td><code>""</code></td>
 		</tr>
 		<tr>
+			<td><code>config.backends.azureblob.bucketLocators</code></td>
+			<td>Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
+		</tr>
+		<tr>
 			<td><code>config.backends.azureblob.enabled</code></td>
 			<td>Enable Azure Blob Storage backend</td>
 			<td><code>bool</code></td>
@@ -189,6 +195,12 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td><code>""</code></td>
 		</tr>
 		<tr>
+			<td><code>config.backends.b2.bucketLocators</code></td>
+			<td>Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
+		</tr>
+		<tr>
 			<td><code>config.backends.b2.enabled</code></td>
 			<td>Enable Backblaze B2 backend</td>
 			<td><code>bool</code></td>
@@ -199,6 +211,12 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td>Base directory for filesystem backend</td>
 			<td><code>string</code></td>
 			<td><code>"/data/s3proxy"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.filesystem.bucketLocators</code></td>
+			<td>Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.filesystem.credential</code></td>
@@ -223,6 +241,12 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td>Use NIO2 implementation (filesystem-nio2) instead of standard filesystem</td>
 			<td><code>bool</code></td>
 			<td><code>true</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.bucketLocators</code></td>
+			<td>Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.googleCloudStorage.clientEmail</code></td>
@@ -271,6 +295,12 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td>Authentication URL</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.openstackSwift.bucketLocators</code></td>
+			<td>Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.openstackSwift.enabled</code></td>
@@ -345,6 +375,12 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td><code>""</code></td>
 		</tr>
 		<tr>
+			<td><code>config.backends.rackspaceCloudfiles.bucketLocators</code></td>
+			<td>Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
+		</tr>
+		<tr>
 			<td><code>config.backends.rackspaceCloudfiles.enabled</code></td>
 			<td>Enable Rackspace Cloud Files backend</td>
 			<td><code>bool</code></td>
@@ -373,6 +409,12 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td>Use AWS-specific S3 provider (aws-s3) instead of generic S3 provider</td>
 			<td><code>bool</code></td>
 			<td><code>true</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.s3.bucketLocators</code></td>
+			<td>Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.s3.enabled</code></td>
@@ -417,6 +459,12 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td><code>""</code></td>
 		</tr>
 		<tr>
+			<td><code>config.backends.transient.bucketLocators</code></td>
+			<td>Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.</td>
+			<td><code>list</code></td>
+			<td><code>[]</code></td>
+		</tr>
+		<tr>
 			<td><code>config.backends.transient.credential</code></td>
 			<td>jclouds credential. S3Proxy requires jclouds.credential in every backend properties file; the transient backend ignores the value. An empty value falls back to "local".</td>
 			<td><code>string</code></td>
@@ -445,12 +493,6 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td>Map virtual bucket names to actual backend buckets</td>
 			<td><code>object</code></td>
 			<td><code>{}</code></td>
-		</tr>
-		<tr>
-			<td><code>config.buckets.locator</code></td>
-			<td>Assign specific buckets to different backends (glob patterns supported)</td>
-			<td><code>list</code></td>
-			<td><code>[]</code></td>
 		</tr>
 		<tr>
 			<td><code>config.cors.allowCredential</code></td>
@@ -937,17 +979,27 @@ config:
       another-bucket: "actual-bucket-name"
 ```
 
-### Bucket Locator
+### Bucket Locator (routing buckets to backends)
 
-Assign specific buckets to different backends:
+When more than one backend is enabled, assign buckets to a specific backend with
+that backend's own `bucketLocators` list. S3Proxy reads bucket-locators per
+backend, so each list is emitted only into that backend's properties file. Glob
+patterns are supported. A bucket that matches no backend's list falls through to
+the first-enabled backend (the default).
 
 ```yaml
 config:
-  buckets:
-    locator:
-      - "bucket1"
-      - "bucket2"
-      - "*.test"  # Glob patterns supported
+  backends:
+    s3:
+      enabled: true
+      # ... credentials ...
+      bucketLocators:
+        - "prod-*"
+        - "customer-data"
+    filesystem:
+      enabled: true
+      bucketLocators:
+        - "scratch-*"   # everything else also lands here (first-enabled default)
 ```
 
 ## Monitoring
