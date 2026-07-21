@@ -1,23 +1,13 @@
 # Functional-test values: THREE backends enabled in one release — s3 (MinIO
-# mock), azureblob (Azurite mock) and filesystem (PVC) — to exercise the chart's
-# multi-backend wiring end-to-end. The workflow round-trips one bucket per
-# backend (smoke-s3-*/smoke-az-*/smoke-fs-*).
-#
-# NOTE: expected to FAIL against current main — runs NON-BLOCKING (soft_fail)
-# until the chart can actually serve multiple backends:
-#   * DND-1442: filesystem emits no jclouds.identity/jclouds.credential, so
-#     s3proxy refuses to start at all.
-#   * DND-1416: azureblob emits jclouds.azureblob.endpoint instead of
-#     jclouds.endpoint, so the Azurite mock endpoint is ignored.
-#   * secret.yaml's if/else-if emits only the FIRST enabled backend's
-#     jclouds.credential (s3 here), and the merge initContainer appends that
-#     same secret.properties to EVERY backend's properties file — azureblob
-#     ends up with MinIO's credential.
-#   * All backend properties files share one s3proxy.endpoint, and the chart
-#     renders the same (global) bucket-locator list into each of them, so there
-#     is no way to route a bucket to a specific backend yet. Needs per-backend
-#     s3proxy.bucket-locator support (e.g. config.backends.<name>.bucketLocators
-#     emitting s3proxy.bucket-locator.N per properties file).
+# mock), azureblob (Azurite mock) and filesystem (PVC) — with per-backend
+# bucket-locator routing. ci/functional/assert-routing.sh writes one bucket per
+# backend through s3proxy (smoke-s3-*/smoke-az-*/smoke-fs-*) and verifies each
+# object physically lands on its intended backend:
+#   * smoke-s3-*  -> s3        -> witnessed directly in MinIO (S3 API)
+#   * smoke-az-*  -> azureblob -> witnessed directly in Azurite (Azure Blob API)
+#   * smoke-fs-*  -> filesystem-> absent from MinIO and Azurite (by elimination)
+# and that no bucket leaks into another backend's store (guards the previous
+# "everything lands on the default backend" false green).
 config:
   auth:
     type: aws-v4
@@ -28,6 +18,8 @@ config:
       enabled: true
       nio2: true
       basedir: /data/s3proxy
+      bucketLocators:
+        - "smoke-fs-*"
     s3:
       enabled: true
       aws: false
@@ -36,13 +28,19 @@ config:
       accessKeyID: minioadmin
       secretAccessKey:
         value: minioadmin
+      bucketLocators:
+        - "smoke-s3-*"
     azureblob:
       enabled: true
-      provider: azureblob
+      # azureblob-sdk (Azure SDK) signs correctly against Azurite and any custom
+      # endpoint; the legacy "azureblob" provider mis-signs SharedKey → 403.
+      provider: azureblob-sdk
       account: devstoreaccount1
       endpoint: http://azurite:10000/devstoreaccount1
       key:
         value: Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+      bucketLocators:
+        - "smoke-az-*"
 persistence:
   enabled: true
   size: 1Gi

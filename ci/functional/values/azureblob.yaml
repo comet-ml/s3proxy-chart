@@ -2,10 +2,10 @@
 # mock (ci/functional/mocks/azurite.yaml -> Service "azurite:10000") using
 # Azurite's well-known devstoreaccount1 credentials.
 #
-# NOTE: expected to FAIL against current main until DND-1416 is fixed — the chart
-# emits jclouds.azureblob.endpoint (typo) instead of jclouds.endpoint, so the
-# custom Azurite endpoint is ignored. This leg runs non-blocking in CI and is a
-# live demonstration that the functional test catches the regression.
+# Uses the azureblob-sdk provider (Azure SDK), which signs correctly against
+# Azurite and any custom endpoint; the legacy "azureblob" provider mis-signs the
+# SharedKey and Azurite rejects it with 403. Relies on the jclouds.endpoint fix
+# (previously the chart emitted the jclouds.azureblob.endpoint typo).
 config:
   auth:
     type: aws-v4
@@ -16,7 +16,7 @@ config:
       enabled: false
     azureblob:
       enabled: true
-      provider: azureblob
+      provider: azureblob-sdk
       account: devstoreaccount1
       endpoint: http://azurite:10000/devstoreaccount1
       key:

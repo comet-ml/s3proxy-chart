@@ -144,11 +144,10 @@ config:
     alias: {}
       # example-bucket: "real-bucket-name"
 
-    # -- Assign specific buckets to different backends (glob patterns supported)
-    locator: []
-      # - "bucket1"
-      # - "bucket2"
-      # - "*.test"  # glob pattern supported
+    # Bucket-to-backend routing is configured PER BACKEND via
+    # config.backends.<name>.bucketLocators. S3Proxy reads bucket-locators from
+    # each backend's own properties file, so a single global list would route
+    # every bucket to only the first backend.
 
   middlewares:
     # -- Make backend read-only
@@ -172,6 +171,8 @@ config:
       identity: "local"
       # -- jclouds credential. S3Proxy requires jclouds.credential in every backend properties file; the filesystem backend ignores the value. An empty value falls back to "local".
       credential: "local"
+      # -- Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.
+      bucketLocators: []
 
     transient:
       # -- Enable transient (in-memory) backend
@@ -182,6 +183,8 @@ config:
       identity: "local"
       # -- jclouds credential. S3Proxy requires jclouds.credential in every backend properties file; the transient backend ignores the value. An empty value falls back to "local".
       credential: "local"
+      # -- Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.
+      bucketLocators: []
 
     s3:
       # -- Enable S3 backend
@@ -202,6 +205,8 @@ config:
         existingSecret: ""
         # -- Key in the existing secret containing the secret access key
         secretKey: "secretAccessKey"
+      # -- Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.
+      bucketLocators: []
 
     azureblob:
       # -- Enable Azure Blob Storage backend
@@ -229,6 +234,8 @@ config:
         existingSecret: ""
         # -- Key in the existing secret containing the SAS token
         secretKey: "sasToken"
+      # -- Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.
+      bucketLocators: []
 
     googleCloudStorage:
       # -- Enable Google Cloud Storage backend
@@ -245,6 +252,8 @@ config:
         existingSecret: ""
         # -- Key in the existing secret containing the private key (in PEM format)
         secretKey: "private.key"
+      # -- Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.
+      bucketLocators: []
 
     b2:
       # -- Enable Backblaze B2 backend
@@ -259,6 +268,8 @@ config:
         existingSecret: ""
         # -- Key in the existing secret containing the application key
         secretKey: "applicationKey"
+      # -- Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.
+      bucketLocators: []
 
     openstackSwift:
       # -- Enable OpenStack Swift backend
@@ -279,6 +290,8 @@ config:
         secretKey: "password"
       # -- Region
       region: ""
+      # -- Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.
+      bucketLocators: []
 
     rackspaceCloudfiles:
       # -- Enable Rackspace Cloud Files backend
@@ -295,6 +308,8 @@ config:
         existingSecret: ""
         # -- Key in the existing secret containing the API key
         secretKey: "apiKey"
+      # -- Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.
+      bucketLocators: []
 
 persistence:
   # -- Enable persistence using PVC
