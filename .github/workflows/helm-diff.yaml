@@ -48,6 +48,18 @@ jobs:
         with:
           version: v3.19.2
 
+      - name: Build chart dependencies
+        # comet-common is not vendored in-repo; resolve it from Chart.lock on each
+        # side that has one (base may predate the dependency), before rendering.
+        run: |
+          for dir in base-repo pr-repo
+          do
+            if [ -f "${dir}/${CHART_PATH}/Chart.lock" ]
+            then
+              helm dependency build "${dir}/${CHART_PATH}"
+            fi
+          done
+
       - name: Render and diff
         run: |
           set -uo pipefail

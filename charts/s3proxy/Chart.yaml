@@ -24,8 +24,10 @@ version: 0.2.0
 appVersion: "3.3.0"
 
 # comet-common is a library chart of shared helpers (names, labels, images, ...)
-# used across Comet charts. Vendored in-repo (charts/*.tgz + Chart.lock) so CI and
-# fork PRs resolve it without registry access.
+# used across Comet charts. The resolved dependency (charts/*.tgz) is git-ignored,
+# not checked in; Chart.lock pins the version/digest and CI runs
+# `helm dependency build` (anonymous OCI pull, no auth) before lint/template/
+# install/package.
 dependencies:
   - name: comet-common
     version: "0.3.0"

@@ -1,0 +1,3 @@
+# Vendored Helm chart dependencies. Not checked in; resolved from Chart.lock via
+# `helm dependency build` (CI does this before lint/template/install/package).
+charts/s3proxy/charts/

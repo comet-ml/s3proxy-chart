@@ -45,6 +45,11 @@ jobs:
         with:
           version: v3.19.2
 
+      - name: Build chart dependencies
+        # comet-common is not vendored in-repo; resolve it from Chart.lock
+        # (anonymous OCI pull, no auth needed).
+        run: helm dependency build charts/s3proxy
+
       - name: Helm lint
         run: helm lint charts/s3proxy --values "${{ matrix.values }}"
 

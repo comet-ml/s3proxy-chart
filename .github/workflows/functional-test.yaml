@@ -71,6 +71,11 @@ jobs:
         with:
           version: v3.19.2
 
+      - name: Build chart dependencies
+        # comet-common is not vendored in-repo; resolve it from Chart.lock
+        # (anonymous OCI pull, no auth needed).
+        run: helm dependency build charts/s3proxy
+
       - name: Create kind cluster
         uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
 
