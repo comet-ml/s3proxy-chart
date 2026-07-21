@@ -4,7 +4,11 @@
 # delete. Uses the AWS CLI over a kubectl port-forward, authenticating with the
 # s3proxy client credentials (config.auth.identity / config.auth.secret).
 #
-# Usage: smoke-test.sh RELEASE NAMESPACE PORT IDENTITY SECRET
+# Usage: smoke-test.sh RELEASE NAMESPACE PORT IDENTITY SECRET [BUCKET_PREFIX]
+#
+# BUCKET_PREFIX (default "smoke") names the test bucket; multi-backend scenarios
+# call this script once per backend with a distinct prefix so each round-trip
+# targets a bucket routed to that backend.
 #
 # Exit non-zero on any failure (a broken backend wiring makes the round-trip fail).
 set -euo pipefail
@@ -14,9 +18,10 @@ NAMESPACE="${2:?namespace required}"
 PORT="${3:-9000}"
 IDENTITY="${4:?s3proxy client identity required}"
 SECRET="${5:?s3proxy client secret required}"
+BUCKET_PREFIX="${6:-smoke}"
 
 LOCAL_PORT=9900
-BUCKET="smoke-$(date +%s)"
+BUCKET="${BUCKET_PREFIX}-$(date +%s)"
 ENDPOINT="http://127.0.0.1:${LOCAL_PORT}"
 SRC="$(mktemp)"
 DL="$(mktemp)"
@@ -90,4 +95,4 @@ echo "==> Cleaning up"
 "${AWS[@]}" s3 rm "s3://${BUCKET}/smoke.txt"
 "${AWS[@]}" s3api delete-bucket --bucket "$BUCKET" || true
 
-echo "✅ Smoke test passed for release '${RELEASE}'"
+echo "✅ Smoke test passed for release '${RELEASE}' (bucket ${BUCKET})"
