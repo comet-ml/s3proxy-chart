@@ -142,6 +142,11 @@ data:
   {{- if or .Values.config.backends.azureblob.endpoint .Values.config.backends.azureblob.account }}
     jclouds.endpoint={{ .Values.config.backends.azureblob.endpoint | default (printf "https://%s.blob.core.windows.net" .Values.config.backends.azureblob.account) }}
   {{- end }}
+  {{- if .Values.config.backends.azureblob.regions }}
+    # Required by the azureblob-sdk provider on real Azure to create buckets
+    # (otherwise "no jclouds.regions configured" -> InvalidLocationConstraint).
+    jclouds.regions={{ .Values.config.backends.azureblob.regions }}
+  {{- end }}
   {{- if .Values.config.backends.azureblob.account }}
     jclouds.identity={{ .Values.config.backends.azureblob.account }}
   {{- end }}

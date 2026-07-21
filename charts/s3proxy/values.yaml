@@ -226,6 +226,8 @@ config:
       # -- (string) Azure endpoint
       # @default -- `https://{{ .Values.config.backends.azureblob.account }}.blob.core.windows.net`
       endpoint:
+      # -- jclouds region(s) for the backend, emitted as `jclouds.regions=`. The azureblob-sdk provider requires this on real Azure to create buckets (without it `aws s3 mb` fails with InvalidLocationConstraint / "no jclouds.regions configured"). Comma-separated for multiple. Not needed against Azurite. Leave empty to omit.
+      regions: ""
       # -- SAS token configuration
       sasToken:
         # -- SAS token value
