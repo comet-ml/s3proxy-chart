@@ -69,7 +69,7 @@ metadata:
 data:
 {{- if .Values.config.backends.filesystem.enabled }}
   backend-filesystem.properties: |-
-{{ include "s3proxy.main.config" . | nindent 4 }}
+    {{- include "s3proxy.main.config" . | nindent 4 }}
 
     # Filesystem backend configuration
   {{- if .Values.config.backends.filesystem.nio2 }}
@@ -89,7 +89,7 @@ data:
 
 {{- if .Values.config.backends.transient.enabled }}
   backend-transient.properties: |-
-{{ include "s3proxy.main.config" . | nindent 4 }}
+    {{- include "s3proxy.main.config" . | nindent 4 }}
 
     # Transient backend configuration
   {{- if .Values.config.backends.transient.nio2 }}
@@ -108,7 +108,7 @@ data:
 
 {{- if .Values.config.backends.s3.enabled }}
   backend-s3.properties: |-
-{{ include "s3proxy.main.config" . | nindent 4 }}
+    {{- include "s3proxy.main.config" . | nindent 4 }}
 
     # S3 backend configuration
   {{- if .Values.config.backends.s3.aws }}
@@ -135,7 +135,7 @@ data:
 
 {{- if .Values.config.backends.azureblob.enabled }}
   backend-azureblob.properties: |-
-{{ include "s3proxy.main.config" . | nindent 4 }}
+    {{- include "s3proxy.main.config" . | nindent 4 }}
 
     # Azure Blob backend configuration
     jclouds.provider={{ .Values.config.backends.azureblob.provider }}
@@ -160,7 +160,7 @@ data:
 
 {{- if .Values.config.backends.googleCloudStorage.enabled }}
   backend-google-cloud-storage.properties: |-
-{{ include "s3proxy.main.config" . | nindent 4 }}
+    {{- include "s3proxy.main.config" . | nindent 4 }}
 
     # Google Cloud Storage backend configuration
     jclouds.provider=google-cloud-storage
@@ -184,7 +184,7 @@ data:
 
 {{- if .Values.config.backends.b2.enabled }}
   backend-b2.properties: |-
-{{ include "s3proxy.main.config" . | nindent 4 }}
+    {{- include "s3proxy.main.config" . | nindent 4 }}
 
     # Backblaze B2 backend configuration
     jclouds.provider=b2
@@ -201,7 +201,7 @@ data:
 
 {{- if .Values.config.backends.openstackSwift.enabled }}
   backend-openstack-swift.properties: |-
-{{ include "s3proxy.main.config" . | nindent 4 }}
+    {{- include "s3proxy.main.config" . | nindent 4 }}
 
     # OpenStack Swift backend configuration
     jclouds.provider=openstack-swift
@@ -224,7 +224,7 @@ data:
 
 {{- if .Values.config.backends.rackspaceCloudfiles.enabled }}
   backend-rackspace-cloudfiles.properties: |-
-{{ include "s3proxy.main.config" . | nindent 4 }}
+    {{- include "s3proxy.main.config" . | nindent 4 }}
 
     # Rackspace Cloud Files backend configuration
   {{- if eq .Values.config.backends.rackspaceCloudfiles.region "uk" }}

@@ -1,0 +1,25 @@
+# Render/lint scenario: HorizontalPodAutoscaler enabled, exercising both the CPU
+# and memory target metrics. kubeconform validates the rendered HPA against the
+# Kubernetes schema, so this scenario is the gate that keeps hpa.yaml on the
+# supported autoscaling/v2 API (the removed autoscaling/v2beta1 was rejected by
+# kubeconform on k8s >= 1.25 — DND-1443).
+config:
+  auth:
+    type: aws-v4
+    identity: test-access-key
+    secret: test-secret-key
+  backends:
+    filesystem:
+      enabled: true
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 75
+persistence:
+  enabled: false
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
