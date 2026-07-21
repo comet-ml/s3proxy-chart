@@ -2,14 +2,14 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "s3proxy.fullname" . }}
+  name: {{ include "comet-common.names.fullname" . }}
   labels:
-    {{- include "s3proxy.labels" . | nindent 4 }}
+    {{- include "comet-common.labels.base" . | nindent 4 }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ include "s3proxy.fullname" . }}
+    name: {{ include "comet-common.names.fullname" . }}
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   metrics:

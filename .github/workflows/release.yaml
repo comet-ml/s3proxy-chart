@@ -81,6 +81,16 @@ jobs:
         run: |
           cp README.md charts/s3proxy/
 
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v3.19.2
+
+      - name: Build chart dependencies
+        # comet-common is not vendored in-repo; resolve it from Chart.lock
+        # (anonymous OCI pull) so chart-releaser can package the chart.
+        run: helm dependency build charts/s3proxy
+
       - name: Run chart-releaser
         uses: bitdeps/helm-oci-charts-releaser@v0.1.3
         with:

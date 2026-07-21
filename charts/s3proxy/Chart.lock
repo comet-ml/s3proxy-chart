@@ -1,0 +1,6 @@
+dependencies:
+- name: comet-common
+  repository: oci://ghcr.io/comet-ml
+  version: 0.3.0
+digest: sha256:8dfb72314d8825e0fecef7d194fef49be3946cb04537924c56a6921222fc9593
+generated: "2026-07-21T15:17:18.631137876+02:00"
