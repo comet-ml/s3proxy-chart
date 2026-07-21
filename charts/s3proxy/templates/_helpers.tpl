@@ -1,62 +1,54 @@
 {{- /*
+These helpers wrap the comet-common library chart
+(https://github.com/comet-ml/common-helm-chart) so naming, labels, and image
+rendering stay consistent across Comet charts. Call sites keep using the
+s3proxy.* names; only the implementations delegate to comet-common.
+
+Selector labels are the one exception kept local: comet-common.selectorLabels
+adds app.kubernetes.io/component, and a Deployment's spec.selector.matchLabels is
+immutable, so adopting it would break `helm upgrade` on existing releases.
+*/}}
+
+{{- /*
 Expand the name of the chart.
 */}}
 {{- define "s3proxy.name" -}}
-  {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- include "comet-common.names.name" . -}}
 {{- end }}
 
 {{- /*
 Create a default fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
 */}}
 {{- define "s3proxy.fullname" -}}
-  {{- if .Values.fullnameOverride }}
-    {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
-  {{- else }}
-    {{- $name := default .Chart.Name .Values.nameOverride }}
-    {{- if contains $name .Release.Name }}
-      {{- .Release.Name | trunc 63 | trimSuffix "-" }}
-    {{- else }}
-      {{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
-    {{- end }}
-  {{- end }}
+{{- include "comet-common.names.fullname" . -}}
 {{- end }}
 
 {{- /*
 Create chart name and version as used by the chart label.
 */}}
 {{- define "s3proxy.chart" -}}
-  {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- include "comet-common.names.chart" . -}}
 {{- end }}
 
 {{- /*
-Common labels
+Common labels (comet-common base set: name, chart, instance, managed-by, version).
 */}}
 {{- define "s3proxy.labels" -}}
-helm.sh/chart: {{ include "s3proxy.chart" . }}
-{{ include "s3proxy.selectorLabels" . }}
-  {{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-  {{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{ include "comet-common.labels.base" . }}
 {{- end }}
 
 {{- /*
-Selector labels
+Selector labels. Kept local so the immutable Deployment selector stays
+{name, instance}; the name value is sourced from comet-common for consistency.
 */}}
 {{- define "s3proxy.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "s3proxy.name" . }}
+app.kubernetes.io/name: {{ include "comet-common.names.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{- /*
-Create the name of the service account to use
+Create the name of the service account to use.
 */}}
 {{- define "s3proxy.serviceAccountName" -}}
-  {{- if .Values.serviceAccount.create }}
-    {{- default (include "s3proxy.fullname" .) .Values.serviceAccount.name }}
-  {{- else }}
-    {{- default "default" .Values.serviceAccount.name }}
-  {{- end }}
+{{- include "comet-common.names.serviceAccount" . -}}
 {{- end }}

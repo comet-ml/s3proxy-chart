@@ -22,3 +22,11 @@ version: 0.2.0
 # follow Semantic Versioning. They should reflect the version the application is using.
 # It is recommended to use it with quotes.
 appVersion: "3.3.0"
+
+# comet-common is a library chart of shared helpers (names, labels, images, ...)
+# used across Comet charts. Vendored in-repo (charts/*.tgz + Chart.lock) so CI and
+# fork PRs resolve it without registry access.
+dependencies:
+  - name: comet-common
+    version: "0.3.0"
+    repository: "oci://ghcr.io/comet-ml"
