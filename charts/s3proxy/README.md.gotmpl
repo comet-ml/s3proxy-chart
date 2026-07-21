@@ -19,6 +19,17 @@
 - Helm 3.2.0+
 - PV provisioner support in the underlying infrastructure (if using filesystem backend with persistence)
 
+## S3Proxy version compatibility
+
+The chart tracks S3Proxy (`andrewgaul/s3proxy`) through `appVersion` (currently `{{ template "chart.appVersion" . }}`); override it with `image.tag`. Minimum supported version is `2.7.0`.
+
+S3Proxy `3.0.0` deprecated the Apache jclouds storage backends (`s3`, `aws-s3`, `azureblob`, `filesystem`, `transient`) in favor of SDK / NIO2 providers, and `3.3.0` is the last release to bundle jclouds. The jclouds providers still function on 3.x but are deprecated upstream:
+
+- `filesystem` / `transient`: default to the non-deprecated `*-nio2` variants (`nio2: true`).
+- `azureblob`: prefer `provider: azureblob-sdk` (the jclouds `azureblob` provider is deprecated and mis-signs against custom endpoints such as Azurite).
+- `s3`, `googleCloudStorage`, `openstackSwift`: SDK providers exist upstream (`aws-s3-sdk`, `google-cloud-storage-sdk`, `openstack-swift-sdk`); migrating the chart defaults to them is tracked separately.
+- `b2`, `rackspaceCloudfiles`: jclouds-only with no SDK successor; they will stop working on S3Proxy releases after `3.3.0`.
+
 ## Installation
 
 ### Install the chart
