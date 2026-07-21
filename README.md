@@ -141,6 +141,12 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td><code>"azureblob"</code></td>
 		</tr>
 		<tr>
+			<td><code>config.backends.azureblob.regions</code></td>
+			<td>jclouds region(s) for the backend, emitted as <code>jclouds.regions=</code>. The azureblob-sdk provider requires this on real Azure to create buckets (without it <code>aws s3 mb</code> fails with InvalidLocationConstraint / "no jclouds.regions configured"). Comma-separated for multiple. Not needed against Azurite. Leave empty to omit.</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
 			<td><code>config.backends.azureblob.sasToken</code></td>
 			<td>SAS token configuration</td>
 			<td><code>object</code></td>
