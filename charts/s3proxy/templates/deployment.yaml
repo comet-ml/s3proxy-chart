@@ -1,3 +1,4 @@
+{{ $portName := ternary "https" "http" .Values.config.tls.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -81,6 +82,15 @@ spec:
                     echo "" >> "$output_file"  # Add newline separator
                     cat "$backend_secret" >> "$output_file"
                   fi
+
+                  # TLS keystore password from an existing Secret (kept out of the
+                  # ConfigMap). Mounted only when config.tls.keystorePassword.existingSecret
+                  # is set; an inline password arrives via secret-common.properties instead.
+                  if [ -f "/tls-password/keystore-password" ]
+                  then
+                    echo "" >> "$output_file"  # Add newline separator
+                    echo "s3proxy.keystore-password=$(cat /tls-password/keystore-password)" >> "$output_file"
+                  fi
                 fi
               done
 
@@ -94,6 +104,11 @@ spec:
               readOnly: true
             - name: merged-config
               mountPath: /merged-config
+{{- if and .Values.config.tls.enabled .Values.config.tls.keystorePassword.existingSecret }}
+            - name: tls-keystore-password
+              mountPath: /tls-password
+              readOnly: true
+{{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -143,12 +158,14 @@ spec:
             {{- toYaml . | nindent 12 }}
 {{- end }}
           ports:
-            - name: http
+            - name: {{ $portName }}
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
+          # tcpSocket probes only check the TCP accept, so they work unchanged
+          # against a TLS-only port (no handshake performed).
           livenessProbe:
             tcpSocket:
-              port: http
+              port: {{ $portName }}
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
@@ -156,7 +173,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             tcpSocket:
-              port: http
+              port: {{ $portName }}
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 3
@@ -168,6 +185,11 @@ spec:
             - name: merged-config
               mountPath: /merged-config
               readOnly: true
+{{- if .Values.config.tls.enabled }}
+            - name: tls-keystore
+              mountPath: /tls
+              readOnly: true
+{{- end }}
 {{- if .Values.config.backends.filesystem.enabled }}
   {{- if .Values.persistence.enabled }}
             - name: data
@@ -192,6 +214,29 @@ spec:
             secretName: {{ include "comet-common.names.fullname" . }}
         - name: merged-config
           emptyDir: {}
+{{- if .Values.config.tls.enabled }}
+        - name: tls-keystore
+          secret:
+  {{- if .Values.config.tls.keystore.existingSecret }}
+            secretName: {{ .Values.config.tls.keystore.existingSecret }}
+            items:
+              - key: {{ .Values.config.tls.keystore.secretKey }}
+                path: keystore.p12
+  {{- else }}
+            secretName: {{ include "comet-common.names.fullname" . }}
+            items:
+              - key: {{ .Values.config.tls.keystore.secretKey }}
+                path: keystore.p12
+  {{- end }}
+  {{- if .Values.config.tls.keystorePassword.existingSecret }}
+        - name: tls-keystore-password
+          secret:
+            secretName: {{ .Values.config.tls.keystorePassword.existingSecret }}
+            items:
+              - key: {{ .Values.config.tls.keystorePassword.secretKey }}
+                path: keystore-password
+  {{- end }}
+{{- end }}
 {{- if .Values.config.backends.filesystem.enabled }}
   {{- if .Values.persistence.enabled }}
         - name: data

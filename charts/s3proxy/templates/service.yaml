@@ -1,3 +1,4 @@
+{{ $portName := ternary "https" "http" .Values.config.tls.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -14,6 +15,6 @@ spec:
     - port: {{ .Values.service.port }}
       targetPort: {{ .Values.service.targetPort }}
       protocol: TCP
-      name: http
+      name: {{ $portName }}
   selector:
     {{- include "s3proxy.selectorLabels" . | nindent 4 }}

@@ -19,6 +19,10 @@ name: Functional Test (kind)
 #                              physically lands on its intended backend (MinIO for
 #                              s3, Azurite for azureblob, filesystem by elimination)
 #                              and that no bucket leaks into another backend.
+#   tls                     -> native in-pod HTTPS. A self-signed PKCS12 keystore is
+#                              generated and stored in a Secret; s3proxy is installed
+#                              with config.tls (existingSecret path) over filesystem,
+#                              then the smoke test round-trips over HTTPS.
 # gcs/b2/openstack-swift/rackspace are render-only (covered by lint-render + helm-diff):
 # gcs has no jclouds.endpoint override in the chart, and the others have no
 # lightweight in-cluster emulator.
@@ -59,6 +63,10 @@ jobs:
             values: ci/functional/values/multi-backend.yaml
             mock: ci/functional/mocks/minio.yaml ci/functional/mocks/azurite.yaml
             verify: routing
+          - backend: tls
+            values: ci/functional/values/tls.yaml
+            tls: true
+            scheme: https
     env:
       NAMESPACE: s3proxy-test
       RELEASE: s3proxy
@@ -82,6 +90,21 @@ jobs:
       - name: Create namespace
         run: kubectl create namespace "${NAMESPACE}"
 
+      - name: Generate self-signed TLS keystore Secret (tls leg)
+        if: matrix.tls
+        # Build a self-signed PKCS12 keystore + password and store both in the
+        # Secret the chart references via config.tls.*.existingSecret. Exercises the
+        # production existingSecret path (also how cert-manager delivers a keystore).
+        run: |
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+            -keyout /tmp/tls.key -out /tmp/tls.crt -subj "/CN=s3proxy"
+          openssl pkcs12 -export \
+            -inkey /tmp/tls.key -in /tmp/tls.crt \
+            -out /tmp/keystore.p12 -passout pass:changeit
+          kubectl -n "${NAMESPACE}" create secret generic s3proxy-tls \
+            --from-file=keystore.p12=/tmp/keystore.p12 \
+            --from-literal=keystore-password=changeit
+
       - name: Deploy mock backends (${{ matrix.backend }})
         if: matrix.mock
         # matrix.mock is a space-separated list of manifests (multi-backend
@@ -101,7 +124,8 @@ jobs:
             --wait --timeout 5m
 
       - name: Verify (${{ matrix.verify || 'round-trip' }})
-        # Single-backend legs: one S3 round-trip through s3proxy.
+        # Single-backend legs: one S3 round-trip through s3proxy (over matrix.scheme,
+        # default http; the tls leg sets https).
         # multi-backend leg (verify=routing): assert each bucket physically lands
         # on its intended backend (needs aws + az; both are on ubuntu-latest).
         run: |
@@ -111,7 +135,7 @@ jobs:
             ci/functional/assert-routing.sh "${RELEASE}" "${NAMESPACE}"
           else
             chmod +x ci/functional/smoke-test.sh
-            ci/functional/smoke-test.sh "${RELEASE}" "${NAMESPACE}" 9000 test-access-key test-secret-key
+            ci/functional/smoke-test.sh "${RELEASE}" "${NAMESPACE}" 9000 test-access-key test-secret-key smoke "${{ matrix.scheme || 'http' }}"
           fi
 
       - name: Diagnostics on failure
