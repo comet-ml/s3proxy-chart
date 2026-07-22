@@ -25,5 +25,5 @@ secure-endpoint), otherwise "http". Shared by service.yaml and deployment.yaml
 (port + tcpSocket probes) so the port name tracks the actual protocol.
 */}}
 {{- define "s3proxy.portName" -}}
-{{- ternary "https" "http" .Values.config.tls.enabled -}}
+  {{- ternary "https" "http" .Values.config.tls.enabled -}}
 {{- end }}
