@@ -1,6 +1,6 @@
 # s3proxy
 
-![Version: 0.2.0](https://img.shields.io/badge/Version-0.2.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.3.0](https://img.shields.io/badge/AppVersion-3.3.0-informational?style=flat-square)
+![Version: 0.3.0](https://img.shields.io/badge/Version-0.3.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.3.0](https://img.shields.io/badge/AppVersion-3.3.0-informational?style=flat-square)
 
 A Helm chart for deploying S3Proxy - Access other storage backends via the S3 API
 
@@ -584,6 +584,48 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td><code>false</code></td>
 		</tr>
 		<tr>
+			<td><code>config.tls.enabled</code></td>
+			<td>Enable native in-pod HTTPS (S3Proxy <code>secure-endpoint</code>). When enabled, S3Proxy serves HTTPS only on <code>service.targetPort</code> (the plaintext endpoint is not bound), so TLS is terminated in the pod rather than at the ingress. Requires a PKCS12 (or JKS) keystore and its password. <code>tcpSocket</code> health probes are unaffected (they do not perform a TLS handshake).</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
+			<td><code>config.tls.keystore.existingSecret</code></td>
+			<td>Name of an existing Secret holding the keystore file (binary PKCS12/JKS). Takes precedence over <code>value</code>. Use this for a customer-provided keystore or a cert-manager-issued one (<code>Certificate.spec.keystores.pkcs12</code>).</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.tls.keystore.secretKey</code></td>
+			<td>Key within <code>keystore.existingSecret</code> (or, when <code>value</code> is used, within the chart's own Secret) that holds the keystore file</td>
+			<td><code>string</code></td>
+			<td><code>"keystore.p12"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.tls.keystore.value</code></td>
+			<td>Inline base64-encoded keystore, stored in the chart's own Secret and mounted as a file. Used only when <code>keystore.existingSecret</code> is empty. Convenient for testing; prefer <code>existingSecret</code> in production.</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.tls.keystorePassword.existingSecret</code></td>
+			<td>Name of an existing Secret holding the keystore password. Takes precedence over <code>value</code>.</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.tls.keystorePassword.secretKey</code></td>
+			<td>Key within <code>keystorePassword.existingSecret</code> that holds the keystore password</td>
+			<td><code>string</code></td>
+			<td><code>"keystore-password"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.tls.keystorePassword.value</code></td>
+			<td>Inline keystore password, stored in the chart's own Secret and merged into the backend properties by the secret-merge initContainer (kept out of the ConfigMap). Used only when <code>keystorePassword.existingSecret</code> is empty.</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
 			<td><code>config.virtualHost</code></td>
 			<td>Virtual Host configuration</td>
 			<td><code>string</code></td>
@@ -956,6 +998,76 @@ aws --endpoint-url http://localhost:8080 s3 ls
 aws --endpoint-url http://localhost:8080 s3 mb s3://test-bucket
 aws --endpoint-url http://localhost:8080 s3 cp test.txt s3://test-bucket/
 aws --endpoint-url http://localhost:8080 s3 ls s3://test-bucket/
+```
+
+## TLS / HTTPS (native, in-pod)
+
+By default S3Proxy binds plain HTTP and TLS is expected to be terminated at the
+ingress. Set `config.tls.enabled=true` to have **S3Proxy itself terminate HTTPS in
+the pod** (S3Proxy's `secure-endpoint`). When enabled:
+
+- S3Proxy serves **HTTPS only** on `service.targetPort` (the plaintext endpoint is
+  not bound). The container/Service port is named `https`.
+- The health probes are `tcpSocket`, which only check the TCP accept (no TLS
+  handshake), so they keep working unchanged against the TLS port.
+- A **PKCS12** keystore is expected (Jetty's default keystore type; JKS also works
+  if supplied). S3Proxy exposes only the keystore path and password, so the chart
+  does not set a keystore type.
+- The keystore **password is never written to the ConfigMap**; it is merged into
+  the backend properties from the Secret by the config-merge initContainer.
+
+### Option A: existing Secret (recommended; also the cert-manager path)
+
+Reference a Secret that already holds the keystore file and the password. This is
+also how a cert-manager `Certificate` with `spec.keystores.pkcs12` delivers a
+keystore (point `keystore.existingSecret` at that Secret, and
+`keystorePassword.existingSecret` at the password Secret it references):
+
+```yaml
+config:
+  tls:
+    enabled: true
+    keystore:
+      existingSecret: my-tls        # holds the PKCS12 archive
+      secretKey: keystore.p12
+    keystorePassword:
+      existingSecret: my-tls        # holds the password (may be the same Secret)
+      secretKey: keystore-password
+```
+
+### Option B: inline keystore + password
+
+Provide the base64-encoded keystore and the password inline; both are stored in the
+chart's own Secret. Convenient for testing; prefer Option A in production.
+
+```yaml
+config:
+  tls:
+    enabled: true
+    keystore:
+      value: "<base64-encoded PKCS12 keystore>"
+    keystorePassword:
+      value: "changeit"
+```
+
+Create a PKCS12 keystore, for example:
+
+```bash
+# From an existing cert + key:
+openssl pkcs12 -export -inkey tls.key -in tls.crt \
+  -out keystore.p12 -passout pass:changeit
+# Inline value:
+base64 -w0 keystore.p12
+# Or as an existing Secret (Option A):
+kubectl create secret generic my-tls \
+  --from-file=keystore.p12=keystore.p12 \
+  --from-literal=keystore-password=changeit
+```
+
+Testing over HTTPS (the CI keystore above is self-signed, so skip verification):
+
+```bash
+aws --endpoint-url https://localhost:9000 --no-verify-ssl s3 ls
 ```
 
 ## CORS Configuration
