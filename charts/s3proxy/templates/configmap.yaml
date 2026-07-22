@@ -1,6 +1,14 @@
 {{- define "s3proxy.main.config" -}}
 # S3Proxy configuration
+  {{- if .Values.config.tls.enabled }}
+# Native TLS: S3Proxy terminates HTTPS in the pod (secure-endpoint only; no
+# plaintext endpoint is bound). The keystore password is not emitted here; it is
+# merged in from the Secret by the merge-configs initContainer.
+s3proxy.secure-endpoint=https://0.0.0.0:{{ .Values.service.targetPort }}
+s3proxy.keystore-path=/tls/keystore.p12
+  {{- else }}
 s3proxy.endpoint=http://0.0.0.0:{{ .Values.service.targetPort }}
+  {{- end }}
 s3proxy.authorization={{ .Values.config.auth.type }}
   {{- if .Values.config.virtualHost }}
 s3proxy.virtual-host={{ .Values.config.virtualHost }}

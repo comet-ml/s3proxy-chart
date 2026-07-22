@@ -1,0 +1,30 @@
+# Functional-test values: native in-pod HTTPS (S3Proxy secure-endpoint) over the
+# filesystem backend. The workflow generates a self-signed PKCS12 keystore and
+# stores it (plus its password) in the Secret "s3proxy-tls" BEFORE install, so this
+# exercises the production existingSecret path end to end. The smoke test then runs
+# a full S3 round-trip over HTTPS (aws --no-verify-ssl against the self-signed cert).
+config:
+  auth:
+    type: aws-v4
+    identity: test-access-key
+    secret: test-secret-key
+  tls:
+    enabled: true
+    keystore:
+      existingSecret: s3proxy-tls
+      secretKey: keystore.p12
+    keystorePassword:
+      existingSecret: s3proxy-tls
+      secretKey: keystore-password
+  backends:
+    filesystem:
+      enabled: true
+      nio2: true
+      basedir: /data/s3proxy
+persistence:
+  enabled: true
+  size: 1Gi
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi

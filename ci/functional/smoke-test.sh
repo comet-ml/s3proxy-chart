@@ -4,11 +4,15 @@
 # delete. Uses the AWS CLI over a kubectl port-forward, authenticating with the
 # s3proxy client credentials (config.auth.identity / config.auth.secret).
 #
-# Usage: smoke-test.sh RELEASE NAMESPACE PORT IDENTITY SECRET [BUCKET_PREFIX]
+# Usage: smoke-test.sh RELEASE NAMESPACE PORT IDENTITY SECRET [BUCKET_PREFIX] [SCHEME]
 #
 # BUCKET_PREFIX (default "smoke") names the test bucket; multi-backend scenarios
 # call this script once per backend with a distinct prefix so each round-trip
 # targets a bucket routed to that backend.
+#
+# SCHEME (default "http") is the endpoint scheme. Set to "https" for the native-TLS
+# leg: the round-trip then goes over HTTPS and TLS cert verification is disabled
+# (--no-verify-ssl / curl -k) because the CI keystore is self-signed.
 #
 # Exit non-zero on any failure (a broken backend wiring makes the round-trip fail).
 set -euo pipefail
@@ -19,10 +23,11 @@ PORT="${3:-9000}"
 IDENTITY="${4:?s3proxy client identity required}"
 SECRET="${5:?s3proxy client secret required}"
 BUCKET_PREFIX="${6:-smoke}"
+SCHEME="${7:-http}"
 
 LOCAL_PORT=9900
 BUCKET="${BUCKET_PREFIX}-$(date +%s)"
-ENDPOINT="http://127.0.0.1:${LOCAL_PORT}"
+ENDPOINT="${SCHEME}://127.0.0.1:${LOCAL_PORT}"
 SRC="$(mktemp)"
 DL="$(mktemp)"
 
@@ -59,7 +64,7 @@ echo "==> Waiting for the port-forward to accept connections"
 ready=false
 for _ in $(seq 1 30)
 do
-  if curl -s -o /dev/null "$ENDPOINT"
+  if curl -sk -o /dev/null "$ENDPOINT"
   then
     ready=true
     break
@@ -74,6 +79,11 @@ then
 fi
 
 AWS=(aws --endpoint-url "$ENDPOINT")
+if [ "$SCHEME" = "https" ]
+then
+  # CI keystore is self-signed; skip cert verification for the round-trip.
+  AWS+=(--no-verify-ssl)
+fi
 
 echo "==> Creating bucket: $BUCKET"
 "${AWS[@]}" s3api create-bucket --bucket "$BUCKET"

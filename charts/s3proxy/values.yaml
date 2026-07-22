@@ -124,6 +124,24 @@ config:
     # -- S3 Secret Access Key for client authentication
     secret: ""
 
+  tls:
+    # -- Enable native in-pod HTTPS (S3Proxy `secure-endpoint`). When enabled, S3Proxy serves HTTPS only on `service.targetPort` (the plaintext endpoint is not bound), so TLS is terminated in the pod rather than at the ingress. Requires a PKCS12 (or JKS) keystore and its password. `tcpSocket` health probes are unaffected (they do not perform a TLS handshake).
+    enabled: false
+    keystore:
+      # -- Name of an existing Secret holding the keystore file (binary PKCS12/JKS). Takes precedence over `value`. Use this for a customer-provided keystore or a cert-manager-issued one (`Certificate.spec.keystores.pkcs12`).
+      existingSecret: ""
+      # -- Key within `keystore.existingSecret` (or, when `value` is used, within the chart's own Secret) that holds the keystore file
+      secretKey: "keystore.p12"
+      # -- (string) Inline base64-encoded keystore, stored in the chart's own Secret and mounted as a file. Used only when `keystore.existingSecret` is empty. Convenient for testing; prefer `existingSecret` in production.
+      value: ""
+    keystorePassword:
+      # -- Name of an existing Secret holding the keystore password. Takes precedence over `value`.
+      existingSecret: ""
+      # -- Key within `keystorePassword.existingSecret` that holds the keystore password
+      secretKey: "keystore-password"
+      # -- Inline keystore password, stored in the chart's own Secret and merged into the backend properties by the secret-merge initContainer (kept out of the ConfigMap). Used only when `keystorePassword.existingSecret` is empty.
+      value: ""
+
   # -- Virtual Host configuration
   virtualHost: ""
 

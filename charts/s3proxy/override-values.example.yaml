@@ -27,6 +27,22 @@ config:
     identity: "admin"
     secret: "changeme123"
 
+  # Native in-pod HTTPS (S3Proxy secure-endpoint). When enabled, S3Proxy serves
+  # HTTPS only on service.targetPort; TLS is terminated in the pod rather than at
+  # the ingress. Requires a PKCS12 (or JKS) keystore + password. Disabled by default.
+  # tls:
+  #   enabled: true
+  #   keystore:
+  #     # Option A: reference an existing Secret (recommended; cert-manager path)
+  #     existingSecret: "my-tls"
+  #     secretKey: "keystore.p12"
+  #     # Option B: inline base64-encoded keystore (testing)
+  #     # value: "<base64 PKCS12>"
+  #   keystorePassword:
+  #     existingSecret: "my-tls"
+  #     secretKey: "keystore-password"
+  #     # value: "changeit"
+
   # Enable CORS for web applications
   cors:
     enabled: true

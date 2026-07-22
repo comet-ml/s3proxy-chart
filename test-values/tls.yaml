@@ -1,0 +1,17 @@
+# Native in-pod HTTPS (S3Proxy secure-endpoint) with an INLINE keystore + password.
+# Render-only: the keystore value is dummy base64, not a real PKCS12 archive.
+config:
+  auth:
+    type: "aws-v4"
+    identity: "testkey"
+    secret: "testsecret"
+  tls:
+    enabled: true
+    keystore:
+      # dummy base64 ("MOCK-KEYSTORE"); a real deployment supplies a PKCS12 archive
+      value: "TU9DSy1LRVlTVE9SRQ=="
+    keystorePassword:
+      value: "changeit"
+  backends:
+    filesystem:
+      enabled: true
