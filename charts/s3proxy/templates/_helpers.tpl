@@ -18,3 +18,12 @@ name value is sourced from comet-common for consistency.
 app.kubernetes.io/name: {{ include "comet-common.names.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{- /*
+Container/Service port name: "https" when native TLS is enabled (S3Proxy binds a
+secure-endpoint), otherwise "http". Shared by service.yaml and deployment.yaml
+(port + tcpSocket probes) so the port name tracks the actual protocol.
+*/}}
+{{- define "s3proxy.portName" -}}
+{{- ternary "https" "http" .Values.config.tls.enabled -}}
+{{- end }}
