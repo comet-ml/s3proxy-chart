@@ -57,7 +57,7 @@ jobs:
         if: success()
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.GHA_COMMIT_TO_MASTER_PAT }}
+          github_token: ${{ secrets.GH_PAT_TO_ACCESS_GITHUB_API }}
           branch: main
 
   release:
