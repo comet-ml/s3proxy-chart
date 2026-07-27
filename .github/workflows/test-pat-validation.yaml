@@ -43,7 +43,10 @@ jobs:
       # captured when this test was written. The push to `main` in release.yaml
       # succeeds only if the PAT owner is one of these logins.
       BYPASS_ROSTER: "CRThaze darenjacobs thalesac jms200 CometActions"
-      TEST_BRANCH: "pat-validate/${{ github.run_id }}"
+      # Single-component name; the push step fully-qualifies it to a refspec.
+      # (A slashed name like pat-validate/<id> makes git refuse to push HEAD
+      # from the detached-HEAD checkout a pull_request run produces.)
+      TEST_BRANCH: "pat-validate-${{ github.run_id }}"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -129,7 +132,9 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.GH_PAT_TO_ACCESS_GITHUB_API }}
-          branch: ${{ env.TEST_BRANCH }}
+          # Fully-qualified so git does not have to "guess" the ref (which fails
+          # on a detached HEAD). This is HEAD:refs/heads/pat-validate-<id>.
+          branch: refs/heads/${{ env.TEST_BRANCH }}
           force: false
 
       - name: 6. Delete throwaway branch (cleanup)
