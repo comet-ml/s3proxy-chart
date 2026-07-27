@@ -1,0 +1,144 @@
+# TEST WORKFLOW - DO NOT MERGE.
+#
+# Validates that `secrets.GH_PAT_TO_ACCESS_GITHUB_API` is a safe drop-in
+# replacement for `secrets.GHA_COMMIT_TO_MASTER_PAT` in release.yaml (PR #13).
+#
+# In release.yaml the `ad-m/github-push-action` step pushes the helm-docs
+# README commit DIRECTLY to `main`. `main` is guarded by the "Protect Main"
+# ruleset, so that direct push only succeeds when the token's identity is a
+# member of a bypass team (`deployment-team` / `deployment-team-actions`).
+#
+# This workflow, in order:
+#   1. asserts the secret is present (value stays masked),
+#   2. reveals which identity the PAT authenticates as (`gh api user`),
+#   3. confirms that identity has push permission on the repo,
+#   4. gives a verdict on main-ruleset bypass (compares the identity against
+#      the known bypass roster, plus a best-effort live team-membership check),
+#   5. proves the token can actually push, using the SAME action release.yaml
+#      uses (`ad-m/github-push-action`), against a throwaway branch,
+#   6. deletes that throwaway branch.
+#
+# `main` is never written to. Delete this file / close the PR when done.
+
+name: "TEST - Validate GH_PAT_TO_ACCESS_GITHUB_API (do not merge)"
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+# The default GITHUB_TOKEN is not used for the push; the PAT is. Keep it minimal.
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-pat-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-pat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # Bypass actors for the "Protect Main" ruleset on comet-ml/s3proxy-chart,
+      # captured when this test was written. The push to `main` in release.yaml
+      # succeeds only if the PAT owner is one of these logins.
+      BYPASS_ROSTER: "CRThaze darenjacobs thalesac jms200 CometActions"
+      TEST_BRANCH: "pat-validate/${{ github.run_id }}"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: 1. Assert secret is present (value masked)
+        env:
+          PAT: ${{ secrets.GH_PAT_TO_ACCESS_GITHUB_API }}
+        run: |
+          if [ -z "$PAT" ]; then
+            echo "::error::secrets.GH_PAT_TO_ACCESS_GITHUB_API is empty or not exposed to this run"
+            exit 1
+          fi
+          echo "Secret present: ${#PAT} characters (value masked by Actions)."
+
+      - name: 2. Resolve PAT owner identity
+        id: whoami
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_TO_ACCESS_GITHUB_API }}
+        run: |
+          if ! login=$(gh api user --jq '.login' 2>/tmp/err); then
+            echo "::error::PAT failed to authenticate against the GitHub API"
+            cat /tmp/err
+            exit 1
+          fi
+          echo "PAT authenticates as: $login"
+          echo "login=$login" >> "$GITHUB_OUTPUT"
+
+      - name: 3. Confirm push permission on this repo
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_TO_ACCESS_GITHUB_API }}
+          LOGIN: ${{ steps.whoami.outputs.login }}
+        run: |
+          perm=$(gh api "repos/${{ github.repository }}/collaborators/${LOGIN}/permission" --jq '.permission')
+          echo "${LOGIN} has '${perm}' permission on ${{ github.repository }}"
+          case "$perm" in
+            admin|maintain|write) echo "OK: push-capable." ;;
+            *) echo "::error::'${LOGIN}' cannot push (permission='${perm}')"; exit 1 ;;
+          esac
+
+      - name: 4. Verdict - can this identity bypass the 'Protect Main' ruleset?
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_TO_ACCESS_GITHUB_API }}
+          LOGIN: ${{ steps.whoami.outputs.login }}
+        run: |
+          in_roster=false
+          for u in $BYPASS_ROSTER; do
+            [ "$u" = "$LOGIN" ] && in_roster=true
+          done
+
+          # Best-effort live check (needs read:org on the PAT; non-fatal if denied).
+          live="unknown"
+          for team in deployment-team deployment-team-actions; do
+            state=$(gh api "orgs/${{ github.repository_owner }}/teams/${team}/memberships/${LOGIN}" --jq '.state' 2>/dev/null || echo "")
+            if [ "$state" = "active" ]; then live="member of ${team}"; break; fi
+          done
+
+          {
+            echo "### GH_PAT_TO_ACCESS_GITHUB_API validation"
+            echo ""
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Authenticates as | \`${LOGIN}\` |"
+            echo "| In known bypass roster | ${in_roster} |"
+            echo "| Live team check | ${live} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$in_roster" = "true" ] || [ "$live" != "unknown" ]; then
+            echo "::notice::PASS - '${LOGIN}' can bypass 'Protect Main'; the direct push to main in release.yaml will work."
+          else
+            echo "::warning::REVIEW - '${LOGIN}' is not in the known bypass roster and live check was inconclusive. Add it to deployment-team(-actions) or the push to main will be rejected."
+          fi
+
+      - name: 5. Prove push works (same action as release.yaml -> throwaway branch)
+        run: |
+          git config user.name "PAT Validation (test)"
+          git config user.email "github-actions@comet.com"
+          git commit --allow-empty -m "test: validate GH_PAT_TO_ACCESS_GITHUB_API push (throwaway, safe to delete)"
+
+      - name: 5b. Push to throwaway branch with the new PAT
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GH_PAT_TO_ACCESS_GITHUB_API }}
+          branch: ${{ env.TEST_BRANCH }}
+          force: false
+
+      - name: 6. Delete throwaway branch (cleanup)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT_TO_ACCESS_GITHUB_API }}
+        run: |
+          if gh api -X DELETE "repos/${{ github.repository }}/git/refs/heads/${TEST_BRANCH}" 2>/dev/null; then
+            echo "Deleted throwaway branch ${TEST_BRANCH}."
+          else
+            echo "Throwaway branch ${TEST_BRANCH} not present (nothing to delete)."
+          fi
