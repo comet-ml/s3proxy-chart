@@ -2,10 +2,8 @@
 # mock (ci/functional/mocks/azurite.yaml -> Service "azurite:10000") using
 # Azurite's well-known devstoreaccount1 credentials.
 #
-# Uses the azureblob-sdk provider (Azure SDK), which signs correctly against
-# Azurite and any custom endpoint; the legacy "azureblob" provider mis-signs the
-# SharedKey and Azurite rejects it with 403. Relies on the jclouds.endpoint fix
-# (previously the chart emitted the jclouds.azureblob.endpoint typo).
+# The azureblob provider is the Azure SDK in S3Proxy 4.x; it signs correctly
+# against Azurite and any custom endpoint reached via jclouds.endpoint.
 config:
   auth:
     type: aws-v4
@@ -16,7 +14,6 @@ config:
       enabled: false
     azureblob:
       enabled: true
-      provider: azureblob-sdk
       account: devstoreaccount1
       endpoint: http://azurite:10000/devstoreaccount1
       key:

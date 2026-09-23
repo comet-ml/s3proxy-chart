@@ -16,13 +16,11 @@ config:
   backends:
     filesystem:
       enabled: true
-      nio2: true
       basedir: /data/s3proxy
       bucketLocators:
         - "smoke-fs-*"
     s3:
       enabled: true
-      aws: false
       region: us-east-1
       endpoint: http://minio:9000
       accessKeyID: minioadmin
@@ -32,9 +30,6 @@ config:
         - "smoke-s3-*"
     azureblob:
       enabled: true
-      # azureblob-sdk (Azure SDK) signs correctly against Azurite and any custom
-      # endpoint; the legacy "azureblob" provider mis-signs SharedKey → 403.
-      provider: azureblob-sdk
       account: devstoreaccount1
       endpoint: http://azurite:10000/devstoreaccount1
       key:

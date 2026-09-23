@@ -108,6 +108,17 @@ spec:
                     done
                   fi
 
+                  # Google Cloud Storage: the SDK store parses jclouds.credential as
+                  # the literal service-account JSON key (ServiceAccountCredentials.
+                  # fromStream), so the mounted key file is collapsed to one Java-
+                  # properties value (whole file slurped, backslashes doubled, then
+                  # newlines -> \n) and appended only to the GCS backend file.
+                  if [ "$backend" = "google-cloud-storage" ] && [ -f /gcs-key/key.json ]
+                  then
+                    esc=$(sed -e ':a' -e 'N' -e '$!ba' -e 's/\\/\\\\/g' -e 's/\n/\\n/g' /gcs-key/key.json)
+                    printf '\njclouds.credential=%s\n' "$esc" >> "$output_file"
+                  fi
+
                   # TLS keystore password from an existing Secret (kept out of the
                   # ConfigMap). Mounted only when config.tls.keystorePassword.existingSecret
                   # is set; an inline password arrives via secret-common.properties instead.
@@ -137,6 +148,11 @@ spec:
 {{- if .Values.config.auth.existingSecret }}
             - name: auth-secret
               mountPath: /auth-secret
+              readOnly: true
+{{- end }}
+{{- if and .Values.config.backends.googleCloudStorage.enabled (or .Values.config.backends.googleCloudStorage.serviceAccountKey.value .Values.config.backends.googleCloudStorage.serviceAccountKey.existingSecret) }}
+            - name: gcs-key
+              mountPath: /gcs-key
               readOnly: true
 {{- end }}
 {{- range $s := (include "s3proxy.externalBackendSecrets" . | fromJsonArray) }}
@@ -177,17 +193,9 @@ spec:
             - "--properties"
             - "/merged-config/backend-google-cloud-storage.properties"
 {{- end }}
-{{- if .Values.config.backends.b2.enabled }}
-            - "--properties"
-            - "/merged-config/backend-b2.properties"
-{{- end }}
 {{- if .Values.config.backends.openstackSwift.enabled }}
             - "--properties"
             - "/merged-config/backend-openstack-swift.properties"
-{{- end }}
-{{- if .Values.config.backends.rackspaceCloudfiles.enabled }}
-            - "--properties"
-            - "/merged-config/backend-rackspace-cloudfiles.properties"
 {{- end }}
 {{- with .Values.extraEnvVars }}
           env:
@@ -252,12 +260,6 @@ spec:
               mountPath: {{ .Values.config.backends.filesystem.basedir }}
   {{- end }}
 {{- end }}
-{{- if and .Values.config.backends.googleCloudStorage.enabled .Values.config.backends.googleCloudStorage.privateKey.existingSecret }}
-            - name: gcp-private-key
-              mountPath: /credentials/gcs-private.key
-              subPath: gcs-private.key
-              readOnly: true
-{{- end }}
 {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
 {{- end }}
@@ -300,13 +302,20 @@ spec:
             claimName: {{ .Values.persistence.existingClaim | default (include "comet-common.names.fullname" .) }}
   {{- end }}
 {{- end }}
-{{- if and .Values.config.backends.googleCloudStorage.enabled .Values.config.backends.googleCloudStorage.privateKey.existingSecret }}
-        - name: gcp-private-key
+{{- if and .Values.config.backends.googleCloudStorage.enabled (or .Values.config.backends.googleCloudStorage.serviceAccountKey.value .Values.config.backends.googleCloudStorage.serviceAccountKey.existingSecret) }}
+        - name: gcs-key
           secret:
-            secretName: {{ .Values.config.backends.googleCloudStorage.privateKey.existingSecret }}
+  {{- if .Values.config.backends.googleCloudStorage.serviceAccountKey.existingSecret }}
+            secretName: {{ .Values.config.backends.googleCloudStorage.serviceAccountKey.existingSecret }}
             items:
-              - key: {{ .Values.config.backends.googleCloudStorage.privateKey.secretKey }}
-                path: gcs-private.key
+              - key: {{ .Values.config.backends.googleCloudStorage.serviceAccountKey.secretKey }}
+                path: key.json
+  {{- else }}
+            secretName: {{ include "comet-common.names.fullname" . }}
+            items:
+              - key: gcs-key.json
+                path: key.json
+  {{- end }}
 {{- end }}
 {{- if .Values.config.auth.existingSecret }}
         - name: auth-secret

@@ -33,9 +33,7 @@ jobs:
           - test-values/auth-existing-secret.yaml
           - test-values/azureblob-managed-identity.yaml
           - test-values/gcs.yaml
-          - test-values/b2.yaml
           - test-values/openstack-swift.yaml
-          - test-values/rackspace.yaml
           - test-values/multi-backend.yaml
           - test-values/ingress.yaml
           - test-values/autoscaling.yaml

@@ -1,5 +1,6 @@
-# Render/lint scenario: OpenStack Swift backend.
-# Exercises the "tenant:user" composite jclouds.identity render.
+# Render/lint scenario: OpenStack Swift backend (openstack-swift provider,
+# openstack4j SDK, Keystone v3). Exercises the bare-username jclouds.identity and
+# the openstack-swift-sdk.project-name / *-domain-name / region render.
 config:
   auth:
     type: aws-v4
@@ -11,10 +12,12 @@ config:
     openstackSwift:
       enabled: true
       authURL: https://auth.example.com/v3
-      tenantName: test-tenant
       userName: test-user
       password:
         value: test-password
+      projectName: test-project
+      projectDomainName: Default
+      userDomainName: Default
       region: RegionOne
 persistence:
   enabled: false

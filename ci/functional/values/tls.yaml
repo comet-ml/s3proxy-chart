@@ -19,7 +19,6 @@ config:
   backends:
     filesystem:
       enabled: true
-      nio2: true
       basedir: /data/s3proxy
 persistence:
   enabled: true

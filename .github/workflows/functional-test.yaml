@@ -25,8 +25,8 @@ name: Functional Test (kind)
 #                              generated and stored in a Secret; s3proxy is installed
 #                              with config.tls (existingSecret path) over filesystem,
 #                              then the smoke test round-trips over HTTPS.
-# gcs/b2/openstack-swift/rackspace are render-only (covered by lint-render + helm-diff):
-# gcs has no jclouds.endpoint override in the chart, and the others have no
+# gcs/openstack-swift are render-only (covered by lint-render + helm-diff): gcs needs
+# a real service-account JSON key (S3Proxy 4.x has no keyless GCS), and swift has no
 # lightweight in-cluster emulator.
 
 on:

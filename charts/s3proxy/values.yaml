@@ -188,43 +188,39 @@ config:
 
   backends:
     filesystem:
-      # -- Enable filesystem backend
+      # -- Enable filesystem backend (provider `filesystem`, NIO2-backed in S3Proxy 4.x)
       enabled: true
-      # -- Use NIO2 implementation (filesystem-nio2) instead of standard filesystem
-      nio2: true
       # -- Base directory for filesystem backend
       basedir: "/data/s3proxy"
-      # -- jclouds identity. S3Proxy requires jclouds.identity in every backend properties file; the filesystem backend ignores the value, so the "local" placeholder is fine. An empty value falls back to "local".
+      # -- jclouds identity placeholder. S3Proxy requires jclouds.identity in every backend properties file; the filesystem backend ignores the value. An empty value falls back to "local".
       identity: "local"
-      # -- jclouds credential. S3Proxy requires jclouds.credential in every backend properties file; the filesystem backend ignores the value. An empty value falls back to "local".
+      # -- jclouds credential placeholder. S3Proxy requires jclouds.credential in every backend properties file; the filesystem backend ignores the value. An empty value falls back to "local".
       credential: "local"
       # -- Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.
       bucketLocators: []
 
     transient:
-      # -- Enable transient (in-memory) backend
+      # -- Enable transient (in-memory) backend (provider `transient`, NIO2-backed in S3Proxy 4.x)
       enabled: false
-      # -- Use NIO2 implementation (transient-nio2) instead of standard transient
-      nio2: true
-      # -- jclouds identity. S3Proxy requires jclouds.identity in every backend properties file; the transient backend ignores the value, so the "local" placeholder is fine. An empty value falls back to "local".
+      # -- jclouds identity placeholder. S3Proxy requires jclouds.identity in every backend properties file; the transient backend ignores the value. An empty value falls back to "local".
       identity: "local"
-      # -- jclouds credential. S3Proxy requires jclouds.credential in every backend properties file; the transient backend ignores the value. An empty value falls back to "local".
+      # -- jclouds credential placeholder. S3Proxy requires jclouds.credential in every backend properties file; the transient backend ignores the value. An empty value falls back to "local".
       credential: "local"
       # -- Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.
       bucketLocators: []
 
     s3:
-      # -- Enable S3 backend
+      # -- Enable S3 backend (provider `aws-s3`, AWS SDK; also serves S3-compatible endpoints such as MinIO/Ceph via `endpoint`)
       enabled: false
-      # -- Use AWS-specific S3 provider (aws-s3) instead of generic S3 provider
-      aws: true
-      # -- AWS region
+      # -- AWS region (`jclouds.region`). S3Proxy defaults to `us-east-1` when empty.
       region: ""
-      # -- S3 endpoint
+      # -- S3 endpoint (`jclouds.endpoint`) for an S3-compatible backend (MinIO, Ceph). Leave empty for AWS.
       endpoint: ""
-      # -- S3 Access Key ID for backend
+      # -- Use ambient/keyless credentials: leave `accessKeyID`/`secretAccessKey` empty and the AWS SDK default credential chain resolves IRSA / EKS Pod Identity / EC2 instance-profile creds. Mutually exclusive with `accessKeyID`/`secretAccessKey.*`.
+      keyless: false
+      # -- S3 Access Key ID for backend (`jclouds.identity`). Leave empty when `keyless: true`.
       accessKeyID: ""
-      # -- S3 Secret Access Key configuration
+      # -- S3 Secret Access Key configuration. Leave empty when `keyless: true`.
       secretAccessKey:
         # -- Secret access key value
         value: ""
@@ -236,11 +232,9 @@ config:
       bucketLocators: []
 
     azureblob:
-      # -- Enable Azure Blob Storage backend
+      # -- Enable Azure Blob Storage backend (provider `azureblob`, Azure SDK)
       enabled: false
-      # -- Provider type. Defaults to `azureblob-sdk` (Azure SDK): it signs correctly against custom endpoints (Azurite, Azure Gov/China, private endpoints) and is the non-deprecated provider on S3Proxy 3.x. The legacy jclouds `azureblob` provider is deprecated upstream and mis-signs against custom endpoints; on real Azure `azureblob-sdk` may require `regions` to be set for bucket creation.
-      provider: "azureblob-sdk"
-      # -- Use Azure Managed/Workload Identity instead of a static account key or SAS token. Requires `provider: azureblob-sdk`; mutually exclusive with `key.*` and `sasToken.*`. When true the chart renders both `jclouds.identity` and `jclouds.credential` empty, which makes azureblob-sdk fall back to Azure's `DefaultAzureCredential` (consuming the AKS workload-identity env `AZURE_CLIENT_ID`/`AZURE_TENANT_ID`/`AZURE_FEDERATED_TOKEN_FILE`). Set `account` (or `endpoint`) for the storage endpoint, annotate the ServiceAccount with `azure.workload.identity/client-id` (`serviceAccount.annotations`) and label the pod `azure.workload.identity/use: "true"` (`podLabels`).
+      # -- Use Azure Managed/Workload Identity instead of a static account key or SAS token. Mutually exclusive with `key.*` and `sasToken.*`. When true the chart renders both `jclouds.identity` and `jclouds.credential` empty, which makes the Azure SDK fall back to `DefaultAzureCredential` (consuming the AKS workload-identity env `AZURE_CLIENT_ID`/`AZURE_TENANT_ID`/`AZURE_FEDERATED_TOKEN_FILE`). Set `account` (or `endpoint`) for the storage endpoint, annotate the ServiceAccount with `azure.workload.identity/client-id` (`serviceAccount.annotations`) and label the pod `azure.workload.identity/use: "true"` (`podLabels`).
       managedIdentity: false
       # -- Storage account name
       account: ""
@@ -255,8 +249,6 @@ config:
       # -- (string) Azure endpoint
       # @default -- `https://{{ .Values.config.backends.azureblob.account }}.blob.core.windows.net`
       endpoint:
-      # -- jclouds region(s) for the backend, emitted as `jclouds.regions=`. The azureblob-sdk provider requires this on real Azure to create buckets (without it `aws s3 mb` fails with InvalidLocationConstraint / "no jclouds.regions configured"). Comma-separated for multiple. Not needed against Azurite. Leave empty to omit.
-      regions: ""
       # -- SAS token configuration
       sasToken:
         # -- SAS token value
@@ -269,47 +261,27 @@ config:
       bucketLocators: []
 
     googleCloudStorage:
-      # -- Enable Google Cloud Storage backend
+      # -- Enable Google Cloud Storage backend (provider `google-cloud-storage`, Google SDK)
       enabled: false
-      # -- GCP project ID
+      # -- GCP project ID, emitted as `jclouds.identity` (the GCS SDK store reads it as the project id). Optional: when empty the project is taken from the service-account key.
       projectID: ""
-      # -- Service account email or user email
-      clientEmail: ""
-      # -- Private key configuration
-      privateKey:
-        # -- Private key value (in PEM format)
+      # -- Service-account key configuration. The full JSON key is passed to the GCS SDK as `jclouds.credential` (`ServiceAccountCredentials.fromStream`). NOTE: S3Proxy 4.x does NOT support keyless GCS (Workload Identity/ADC) — an empty credential selects an unauthenticated (emulator-only) client, not ADC — so a static key is required against real GCS.
+      serviceAccountKey:
+        # -- (string) Inline service-account JSON key content, stored in the chart-owned Secret and mounted as a file the initContainer merges into the backend properties (kept out of the ConfigMap). Used only when `existingSecret` is empty.
         value: ""
-        # -- Name of existing secret containing the private key
+        # -- Name of an existing Secret holding the service-account JSON key
         existingSecret: ""
-        # -- Key in the existing secret containing the private key (in PEM format)
-        secretKey: "private.key"
-      # -- Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.
-      bucketLocators: []
-
-    b2:
-      # -- Enable Backblaze B2 backend
-      enabled: false
-      # -- B2 account ID
-      account: ""
-      # -- B2 application key configuration
-      applicationKey:
-        # -- Application key value
-        value: ""
-        # -- Name of existing secret containing the application key
-        existingSecret: ""
-        # -- Key in the existing secret containing the application key
-        secretKey: "applicationKey"
+        # -- Key within the Secret that holds the JSON key
+        secretKey: "key.json"
       # -- Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.
       bucketLocators: []
 
     openstackSwift:
-      # -- Enable OpenStack Swift backend
+      # -- Enable OpenStack Swift backend (provider `openstack-swift`, openstack4j SDK, Keystone v3)
       enabled: false
-      # -- Authentication URL
+      # -- Keystone authentication URL (`jclouds.endpoint`)
       authURL: ""
-      # -- Tenant name
-      tenantName: ""
-      # -- Username
+      # -- Username (`jclouds.identity`)
       userName: ""
       # -- Password configuration
       password:
@@ -319,26 +291,14 @@ config:
         existingSecret: ""
         # -- Key in the existing secret containing the password
         secretKey: "password"
-      # -- Region
+      # -- Keystone project (tenant) name to scope the token to (`openstack-swift-sdk.project-name`). Required: Swift is only reachable through a project-scoped token.
+      projectName: ""
+      # -- Keystone domain that owns the project (`openstack-swift-sdk.project-domain-name`)
+      projectDomainName: "Default"
+      # -- Keystone domain that owns the user (`openstack-swift-sdk.user-domain-name`)
+      userDomainName: "Default"
+      # -- Region to select from the service catalog (`openstack-swift-sdk.region`); empty selects the first/default region
       region: ""
-      # -- Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.
-      bucketLocators: []
-
-    rackspaceCloudfiles:
-      # -- Enable Rackspace Cloud Files backend
-      enabled: false
-      # -- Region (uk or us)
-      region: "us"
-      # -- Username
-      userName: ""
-      # -- API key configuration
-      apiKey:
-        # -- API key value
-        value: ""
-        # -- Name of existing secret containing the API key
-        existingSecret: ""
-        # -- Key in the existing secret containing the API key
-        secretKey: "apiKey"
       # -- Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.
       bucketLocators: []
 

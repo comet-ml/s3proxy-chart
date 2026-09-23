@@ -9,6 +9,5 @@ config:
       enabled: false
     transient:
       enabled: true
-      nio2: true
 persistence:
   enabled: false

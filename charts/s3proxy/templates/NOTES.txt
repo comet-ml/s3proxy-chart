@@ -22,39 +22,19 @@
 {{- end }}
 
 2. S3Proxy Configuration:
-   - Backend Provider: 
+   - Backend Provider:
 {{- if .Values.config.backends.filesystem.enabled }}
-  {{- if .Values.config.backends.filesystem.nio2 }}
-     filesystem (filesystem-nio2)
-  {{- else }}
-     filesystem (filesystem)
-  {{- end }}
+     filesystem
 {{- else if .Values.config.backends.transient.enabled }}
-  {{- if .Values.config.backends.transient.nio2 }}
-     transient (transient-nio2)
-  {{- else }}
-     transient (transient)
-  {{- end }}
+     transient
 {{- else if .Values.config.backends.s3.enabled }}
-  {{- if .Values.config.backends.s3.aws }}
-     AWS S3 (aws-s3)
-  {{- else }}
-     Generic S3 (s3)
-  {{- end }}
+     S3 (aws-s3)
 {{- else if .Values.config.backends.azureblob.enabled }}
-     Azure Blob ({{ .Values.config.backends.azureblob.provider }})
+     Azure Blob (azureblob)
 {{- else if .Values.config.backends.googleCloudStorage.enabled }}
      Google Cloud Storage
-{{- else if .Values.config.backends.b2.enabled }}
-     Backblaze B2
 {{- else if .Values.config.backends.openstackSwift.enabled }}
      OpenStack Swift
-{{- else if .Values.config.backends.rackspaceCloudfiles.enabled }}
-  {{- if eq .Values.config.backends.rackspaceCloudfiles.region "uk" }}
-     Rackspace Cloud Files UK
-  {{- else }}
-     Rackspace Cloud Files US
-  {{- end }}
 {{- end }}
    - Authorization: {{ .Values.config.auth.type }}
 {{- if .Values.config.cors.enabled }}
@@ -110,15 +90,11 @@
    - WARNING: S3Proxy identity not configured. Remember to set config.auth.identity and config.auth.secret (or config.auth.existingSecret) for authentication.
 {{- end }}
 {{- if .Values.config.backends.s3.enabled }}
-   - Make sure to configure S3 backend credentials
+   - Make sure to configure S3 backend credentials (or set s3.keyless: true)
 {{- else if .Values.config.backends.azureblob.enabled }}
-   - Make sure to configure Azure Blob backend credentials
+   - Make sure to configure Azure Blob backend credentials (or set azureblob.managedIdentity: true)
 {{- else if .Values.config.backends.googleCloudStorage.enabled }}
    - Make sure to configure Google Cloud Storage backend credentials
-{{- else if .Values.config.backends.b2.enabled }}
-   - Make sure to configure Backblaze B2 backend credentials
 {{- else if .Values.config.backends.openstackSwift.enabled }}
    - Make sure to configure OpenStack Swift backend credentials
-{{- else if .Values.config.backends.rackspaceCloudfiles.enabled }}
-   - Make sure to configure Rackspace Cloud Files backend credentials
 {{- end }}
