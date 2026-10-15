@@ -1,0 +1,14 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["github>comet-ml/renovate-config:security"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "The s3proxy image tag defaults to the chart's appVersion, which helm-values can't see",
+      "managerFilePatterns": ["/(^|/)charts/s3proxy/Chart\\.yaml$/"],
+      "matchStrings": ["appVersion:\\s*\"?(?<currentValue>[^\"\\s]+)\"?"],
+      "depNameTemplate": "andrewgaul/s3proxy",
+      "datasourceTemplate": "docker"
+    }
+  ]
+}
