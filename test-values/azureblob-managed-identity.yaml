@@ -12,7 +12,6 @@ config:
       enabled: false
     azureblob:
       enabled: true
-      provider: azureblob-sdk
       managedIdentity: true
       account: teststorageaccount
 serviceAccount:

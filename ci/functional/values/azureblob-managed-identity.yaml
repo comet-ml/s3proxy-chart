@@ -1,0 +1,45 @@
+# Functional-test values: Azure Blob backend with managedIdentity against the
+# OAuth-enabled Azurite mock (ci/functional/mocks/azurite-oauth.yaml), no account
+# key. The chart renders empty jclouds.identity/credential, so S3Proxy's Azure SDK
+# falls back to DefaultAzureCredential, whose managed-identity source is pointed
+# at the token stub (ci/functional/mocks/azure-token-stub.yaml) through the App
+# Service IDENTITY_ENDPOINT/IDENTITY_HEADER contract. The Azure SDK sends bearer
+# tokens over HTTPS only, so the JVM trusts Azurite's self-signed certificate via
+# the s3proxy-truststore Secret the workflow creates.
+config:
+  auth:
+    type: aws-v4
+    identity: test-access-key
+    secret: test-secret-key
+  backends:
+    filesystem:
+      enabled: false
+    azureblob:
+      enabled: true
+      account: devstoreaccount1
+      endpoint: https://azurite:10000/devstoreaccount1
+      managedIdentity: true
+extraEnvVars:
+  - name: IDENTITY_ENDPOINT
+    value: http://azure-token:8080/msi/token
+  - name: IDENTITY_HEADER
+    value: functional-test
+  - name: JAVA_TOOL_OPTIONS
+    value: >-
+      -Djavax.net.ssl.trustStore=/truststore/truststore
+      -Djavax.net.ssl.trustStorePassword=changeit
+      -Djavax.net.ssl.trustStoreType=PKCS12
+extraVolumes:
+  - name: truststore
+    secret:
+      secretName: s3proxy-truststore
+extraVolumeMounts:
+  - name: truststore
+    mountPath: /truststore
+    readOnly: true
+persistence:
+  enabled: false
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi

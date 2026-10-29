@@ -19,9 +19,10 @@ spec:
     spec:
       containers:
         - name: minio
-          # quay.io, not docker.io: MinIO removed its community images from Docker
-          # Hub in 2025, so the old docker.io tag now 404s (ImagePullBackOff).
-          image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z.hotfix.7aa24e772
+          # MinIO's own images on Docker Hub and quay.io now need authentication.
+          # Chainguard's build pulls anonymously but publishes only :latest for
+          # free, so pin the digest.
+          image: cgr.dev/chainguard/minio@sha256:e234321fd3abff7fb968b0674056e883b702aa1ad93a0d4d795cb6c21fa46407
           args:
             - server
             - /data

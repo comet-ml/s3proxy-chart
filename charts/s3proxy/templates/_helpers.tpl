@@ -43,16 +43,10 @@ backend-<name>.properties filename; <prop> is the jclouds key the initContainer 
     {{- $out = append $out (dict "name" "azureblob-credential" "backend" "azureblob" "prop" "jclouds.credential" "secret" $b.azureblob.key.existingSecret "key" $b.azureblob.key.secretKey) -}}
   {{- end -}}
   {{- if and $b.azureblob.enabled $b.azureblob.sasToken.existingSecret -}}
-    {{- $out = append $out (dict "name" "azureblob-sas" "backend" "azureblob" "prop" "jclouds.azureblob.sas" "secret" $b.azureblob.sasToken.existingSecret "key" $b.azureblob.sasToken.secretKey) -}}
-  {{- end -}}
-  {{- if and $b.b2.enabled $b.b2.applicationKey.existingSecret -}}
-    {{- $out = append $out (dict "name" "b2-credential" "backend" "b2" "prop" "jclouds.credential" "secret" $b.b2.applicationKey.existingSecret "key" $b.b2.applicationKey.secretKey) -}}
+    {{- $out = append $out (dict "name" "azureblob-sas" "backend" "azureblob" "prop" "jclouds.session-token" "secret" $b.azureblob.sasToken.existingSecret "key" $b.azureblob.sasToken.secretKey) -}}
   {{- end -}}
   {{- if and $b.openstackSwift.enabled $b.openstackSwift.password.existingSecret -}}
     {{- $out = append $out (dict "name" "openstack-swift-credential" "backend" "openstack-swift" "prop" "jclouds.credential" "secret" $b.openstackSwift.password.existingSecret "key" $b.openstackSwift.password.secretKey) -}}
-  {{- end -}}
-  {{- if and $b.rackspaceCloudfiles.enabled $b.rackspaceCloudfiles.apiKey.existingSecret -}}
-    {{- $out = append $out (dict "name" "rackspace-cloudfiles-credential" "backend" "rackspace-cloudfiles" "prop" "jclouds.credential" "secret" $b.rackspaceCloudfiles.apiKey.existingSecret "key" $b.rackspaceCloudfiles.apiKey.secretKey) -}}
   {{- end -}}
 {{- $out | toJson -}}
 {{- end }}

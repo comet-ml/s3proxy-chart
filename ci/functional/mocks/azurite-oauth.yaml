@@ -1,0 +1,67 @@
+# Azurite with OAuth for the azureblob-managed-identity functional leg.
+# --oauth basic accepts bearer tokens (checking issuer, audience and lifetime) and
+# requires HTTPS, so it serves the self-signed azurite-tls Secret the workflow
+# creates. Anonymous requests are still rejected, so a passing round-trip with no
+# account key proves S3Proxy authenticated with the token.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: azurite
+  labels:
+    app: azurite
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: azurite
+  template:
+    metadata:
+      labels:
+        app: azurite
+    spec:
+      containers:
+        - name: azurite
+          image: mcr.microsoft.com/azure-storage/azurite:3.34.0
+          args:
+            - azurite-blob
+            - --blobHost
+            - 0.0.0.0
+            - --blobPort
+            - "10000"
+            - --skipApiVersionCheck
+            - --oauth
+            - basic
+            - --cert
+            - /certs/tls.crt
+            - --key
+            - /certs/tls.key
+          ports:
+            - name: blob
+              containerPort: 10000
+          readinessProbe:
+            tcpSocket:
+              port: 10000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: tls
+              mountPath: /certs
+              readOnly: true
+      volumes:
+        - name: tls
+          secret:
+            secretName: azurite-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: azurite
+  labels:
+    app: azurite
+spec:
+  selector:
+    app: azurite
+  ports:
+    - name: blob
+      port: 10000
+      targetPort: 10000

@@ -70,21 +70,18 @@ config:
   # Properties files will be loaded in order: main properties first, then each backend's properties
   # Later properties can override earlier ones if there are conflicts
   backends:
-    # Filesystem backend for local storage
+    # Filesystem backend for local storage (NIO2-backed)
     filesystem:
       enabled: true  # Set to true to use filesystem backend
-      nio2: true  # Set to true for NIO2 implementation (filesystem-nio2), false for standard (filesystem)
       basedir: "/data/s3proxy"
 
     # Transient (in-memory) backend - useful for testing
     transient:
       enabled: false  # Set to true to use transient backend
-      nio2: true  # Set to true for NIO2 implementation (transient-nio2), false for standard (transient)
 
-    # S3 backend (AWS S3 or S3-compatible storage)
+    # S3 backend (aws-s3 AWS SDK provider; AWS S3 or any S3-compatible storage)
     s3:
       enabled: false  # Set to true to use S3 backend
-      aws: true  # Set to true for AWS S3 (aws-s3 provider), false for generic S3
       region: "us-west-2"
       # endpoint: "https://s3.amazonaws.com"  # Optional custom endpoint (e.g., MinIO, Ceph)
       accessKeyID: "AKIAIOSFODNN7EXAMPLE"
@@ -92,11 +89,13 @@ config:
         value: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
         # existingSecret: "my-s3-secret"
         # secretKey: "secretAccessKey"
+      # Or keyless: drop accessKeyID/secretAccessKey and set keyless: true to use the
+      # AWS default credential chain (IRSA / EKS Pod Identity / EC2 instance profile).
+      # keyless: true
 
-    # Azure Blob Storage backend
+    # Azure Blob Storage backend (Azure SDK)
     azureblob:
       enabled: false  # Set to true to use Azure Blob backend
-      provider: "azureblob"  # Can be "azureblob" or "azureblob-sdk"
       account: "mystorageaccount"
       key:
         value: "base64encodedkey=="
@@ -107,57 +106,41 @@ config:
         value: ""  # Optional SAS token
         # existingSecret: "my-azure-sas-secret"
         # secretKey: "sasToken"
+      # Or Managed/Workload Identity (no static key): set managedIdentity: true and
+      # leave key/sasToken empty (see README "Example 3b").
+      # managedIdentity: true
 
-    # Google Cloud Storage backend
+    # Google Cloud Storage backend (Google SDK). A static service-account JSON key is
+    # required; S3Proxy 4.x does not support keyless GCS (Workload Identity/ADC).
     googleCloudStorage:
       enabled: false  # Set to true to use GCS backend
-      projectID: "my-project"
+      projectID: "my-project"  # Optional; otherwise taken from the key
+      serviceAccountKey:
+        # Option 1: the full service-account JSON key inline
+        # value: |
+        #   {
+        #     "type": "service_account",
+        #     "project_id": "my-project",
+        #     "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
+        #     "client_email": "service-account@my-project.iam.gserviceaccount.com"
+        #   }
+        # Option 2: reference an existing Secret holding the JSON key
+        # existingSecret: "my-gcs-key"
+        # secretKey: "key.json"
 
-      # Service account email or user email
-      clientEmail: "service-account@my-project.iam.gserviceaccount.com"
-
-      # Private key configuration
-      privateKey:
-        # Option 1: Provide private key directly
-        # value: |-
-        #   -----BEGIN RSA PRIVATE KEY-----
-        #   ...
-        #   -----END RSA PRIVATE KEY-----
-
-        # Option 2: Reference an existing secret containing the private key
-        # existingSecret: "my-gcs-privatekey-secret"
-        # secretKey: "privateKey"
-
-    # Backblaze B2 backend
-    b2:
-      enabled: false  # Set to true to use B2 backend
-      account: "account-id"
-      applicationKey:
-        value: "application-key"
-        # existingSecret: "my-b2-secret"
-        # secretKey: "applicationKey"
-
-    # OpenStack Swift backend
+    # OpenStack Swift backend (openstack4j SDK, Keystone v3)
     openstackSwift:
       enabled: false  # Set to true to use Swift backend
-      authURL: "https://auth.cloud.com/v2.0"
-      tenantName: "my-tenant"
+      authURL: "https://auth.cloud.com/v3"
       userName: "my-user"
       password:
         value: "my-password"
         # existingSecret: "my-swift-secret"
         # secretKey: "password"
+      projectName: "my-project"       # Keystone project (required)
+      projectDomainName: "Default"
+      userDomainName: "Default"
       region: "RegionOne"
-
-    # Rackspace Cloud Files backend
-    rackspaceCloudfiles:
-      enabled: false  # Set to true to use Rackspace Cloud Files backend
-      region: "us"  # Region: "us" or "uk"
-      userName: "my-user"
-      apiKey:
-        value: "my-api-key"
-        # existingSecret: "my-rackspace-secret"
-        # secretKey: "apiKey"
 
 # Persistence settings for filesystem backend
 persistence:

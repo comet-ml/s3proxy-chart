@@ -12,7 +12,6 @@ config:
       enabled: false
     azureblob:
       enabled: true
-      provider: azureblob
       account: teststorageaccount
       key:
         value: dGVzdC1henVyZS1hY2NvdW50LWtleQ==

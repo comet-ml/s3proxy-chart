@@ -12,7 +12,6 @@ config:
       enabled: false
     s3:
       enabled: true
-      aws: false
       region: us-east-1
       endpoint: http://minio.example:9000
       accessKeyID: minio-access-key
@@ -20,7 +19,6 @@ config:
         value: minio-secret-key
     azureblob:
       enabled: true
-      provider: azureblob
       account: teststorageaccount
       key:
         value: dGVzdC1henVyZS1hY2NvdW50LWtleQ==

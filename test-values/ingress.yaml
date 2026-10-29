@@ -17,7 +17,6 @@ config:
   backends:
     filesystem:
       enabled: true
-      nio2: true
       basedir: /data/s3proxy
 serviceAccount:
   create: true

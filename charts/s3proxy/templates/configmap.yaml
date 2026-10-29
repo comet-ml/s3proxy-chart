@@ -69,35 +69,34 @@ s3proxy.large-object-mocking=true
   {{- end }}
 {{- end }}
 {{- /*
-  Guardrail (DND-1418): the jclouds-only backends below have no SDK successor, and
-  upstream has announced they are dropped after S3Proxy 3.3.0. Fail the render if
-  one is enabled while the effective S3Proxy version (image.tag, else appVersion)
-  parses as semver and is greater than 3.3.0, so upgrading past the jclouds sunset
-  cannot silently ship a broken backend. Non-semver tags (master, sha-*) are not
-  version-checked. When S3Proxy ships a jclouds-free release the chart moves to
-  1.x.x and migrates/removes these backends.
+  Version guard: this chart (1.x) targets S3Proxy 4.x, which removed Apache jclouds
+  and, with it, the Atmos/B2 backends and the -sdk/-nio2 provider name variants (the
+  short names are now canonical). Rendered configs are therefore not valid on 3.x, so
+  fail if the effective S3Proxy version (image.tag, else appVersion) parses as semver
+  and is older than 4.0.0. Non-semver tags (master, sha-*) are not version-checked.
+  Chart 0.x remains the line for S3Proxy 3.x.
 */}}
 {{- $s3pVersion := .Values.image.tag | default .Chart.AppVersion -}}
 {{- if regexMatch "^v?[0-9]+\\.[0-9]+\\.[0-9]+" $s3pVersion }}
-  {{- if semverCompare "> 3.3.0" (trimPrefix "v" $s3pVersion) }}
-    {{- range $backend := list "b2" "atmos" }}
-      {{- if dig $backend "enabled" false $.Values.config.backends }}
-        {{- fail (printf "config.backends.%s is enabled, but the %q S3Proxy backend relies on Apache jclouds, which is dropped after 3.3.0 (resolved image version %s). Pin image.tag to 3.3.0 or earlier, or disable config.backends.%s. See the chart README 'S3Proxy version compatibility' notes." $backend $backend $s3pVersion $backend) }}
-      {{- end }}
-    {{- end }}
+  {{- if semverCompare "< 4.0.0" (trimPrefix "v" $s3pVersion) }}
+    {{- fail (printf "s3proxy-chart %s targets S3Proxy >= 4.0.0 (jclouds removed in 4.0.0), but the effective S3Proxy version is %s. Bump image.tag to >= 4.0.0, or use chart 0.x for S3Proxy 3.x. See the chart README 'S3Proxy version compatibility' notes." $.Chart.Version $s3pVersion) }}
   {{- end }}
 {{- end }}
 {{- /* Fail fast on an Azure managed-identity config that can't authenticate, since
        the failure otherwise surfaces only at runtime as an opaque Azure SDK error. */}}
 {{- if and .Values.config.backends.azureblob.enabled .Values.config.backends.azureblob.managedIdentity }}
-  {{- if ne .Values.config.backends.azureblob.provider "azureblob-sdk" }}
-    {{- fail "config.backends.azureblob.managedIdentity requires provider=azureblob-sdk; the legacy jclouds azureblob provider cannot use Azure token auth." }}
-  {{- end }}
-  {{- if or .Values.config.backends.azureblob.key.value .Values.config.backends.azureblob.key.existingSecret .Values.config.backends.azureblob.sasToken.value }}
+  {{- if or .Values.config.backends.azureblob.key.value .Values.config.backends.azureblob.key.existingSecret .Values.config.backends.azureblob.sasToken.value .Values.config.backends.azureblob.sasToken.existingSecret }}
     {{- fail "config.backends.azureblob.managedIdentity conflicts with a static credential; a non-empty key.*/sasToken.* disables DefaultAzureCredential. Unset them." }}
   {{- end }}
   {{- if and (not .Values.config.backends.azureblob.account) (not .Values.config.backends.azureblob.endpoint) }}
     {{- fail "config.backends.azureblob.managedIdentity needs the storage endpoint; set config.backends.azureblob.account (default endpoint) or endpoint." }}
+  {{- end }}
+{{- end }}
+{{- /* Same fail-fast for S3 keyless: an ambient-credentials config must not also
+       carry a static key, which would override the AWS default credential chain. */}}
+{{- if and .Values.config.backends.s3.enabled .Values.config.backends.s3.keyless }}
+  {{- if or .Values.config.backends.s3.accessKeyID .Values.config.backends.s3.secretAccessKey.value .Values.config.backends.s3.secretAccessKey.existingSecret }}
+    {{- fail "config.backends.s3.keyless conflicts with a static credential; a non-empty accessKeyID/secretAccessKey.* disables the AWS default credential chain. Unset them." }}
   {{- end }}
 {{- end }}
 apiVersion: v1
@@ -111,12 +110,8 @@ data:
   backend-filesystem.properties: |-
     {{- include "s3proxy.main.config" . | nindent 4 }}
 
-    # Filesystem backend configuration
-  {{- if .Values.config.backends.filesystem.nio2 }}
-    jclouds.provider=filesystem-nio2
-  {{- else }}
+    # Filesystem backend configuration (NIO2-backed in S3Proxy 4.x)
     jclouds.provider=filesystem
-  {{- end }}
     jclouds.filesystem.basedir={{ .Values.config.backends.filesystem.basedir }}
     # S3Proxy requires jclouds.identity and jclouds.credential in every backend
     # properties file, even for local backends where the values are unused.
@@ -131,12 +126,8 @@ data:
   backend-transient.properties: |-
     {{- include "s3proxy.main.config" . | nindent 4 }}
 
-    # Transient backend configuration
-  {{- if .Values.config.backends.transient.nio2 }}
-    jclouds.provider=transient-nio2
-  {{- else }}
+    # Transient backend configuration (NIO2-backed in S3Proxy 4.x)
     jclouds.provider=transient
-  {{- end }}
     # S3Proxy requires jclouds.identity and jclouds.credential in every backend
     # properties file, even for local backends where the values are unused.
     jclouds.identity={{ .Values.config.backends.transient.identity | default "local" }}
@@ -150,23 +141,27 @@ data:
   backend-s3.properties: |-
     {{- include "s3proxy.main.config" . | nindent 4 }}
 
-    # S3 backend configuration
-  {{- if .Values.config.backends.s3.aws }}
+    # S3 backend configuration (aws-s3 provider, AWS SDK; also serves S3-compatible
+    # endpoints such as MinIO/Ceph via jclouds.endpoint).
     jclouds.provider=aws-s3
-  {{- else }}
-    jclouds.provider=s3
-  {{- end }}
   {{- if .Values.config.backends.s3.region }}
     jclouds.region={{ .Values.config.backends.s3.region }}
   {{- end }}
   {{- if .Values.config.backends.s3.endpoint }}
     jclouds.endpoint={{ .Values.config.backends.s3.endpoint }}
   {{- end }}
-  {{- if .Values.config.backends.s3.accessKeyID }}
+  {{- if .Values.config.backends.s3.keyless }}
+    # Keyless: empty identity/credential make the AWS SDK resolve credentials from
+    # its default provider chain (IRSA / EKS Pod Identity / EC2 instance profile).
+    jclouds.identity=
+    jclouds.credential=
+  {{- else }}
+    {{- if .Values.config.backends.s3.accessKeyID }}
     jclouds.identity={{ .Values.config.backends.s3.accessKeyID }}
-  {{- end }}
-  {{- if .Values.config.backends.s3.secretAccessKey.value }}
+    {{- end }}
+    {{- if .Values.config.backends.s3.secretAccessKey.value }}
     # Credential will be merged from the secret properties file
+    {{- end }}
   {{- end }}
   {{- range $index, $bucket := .Values.config.backends.s3.bucketLocators }}
     s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
@@ -177,21 +172,16 @@ data:
   backend-azureblob.properties: |-
     {{- include "s3proxy.main.config" . | nindent 4 }}
 
-    # Azure Blob backend configuration
-    jclouds.provider={{ .Values.config.backends.azureblob.provider }}
+    # Azure Blob backend configuration (azureblob provider, Azure SDK)
+    jclouds.provider=azureblob
   {{- if or .Values.config.backends.azureblob.endpoint .Values.config.backends.azureblob.account }}
     jclouds.endpoint={{ .Values.config.backends.azureblob.endpoint | default (printf "https://%s.blob.core.windows.net" .Values.config.backends.azureblob.account) }}
   {{- end }}
-  {{- if .Values.config.backends.azureblob.regions }}
-    # Required by the azureblob-sdk provider on real Azure to create buckets
-    # (otherwise "no jclouds.regions configured" -> InvalidLocationConstraint).
-    jclouds.regions={{ .Values.config.backends.azureblob.regions }}
-  {{- end }}
   {{- if .Values.config.backends.azureblob.managedIdentity }}
-    # Managed/Workload Identity: azureblob-sdk falls back to Azure's
-    # DefaultAzureCredential (reads the AKS-injected AZURE_CLIENT_ID/TENANT_ID/
-    # FEDERATED_TOKEN_FILE) only when BOTH identity and credential are empty. The
-    # account name lives in jclouds.endpoint above, never in the identity.
+    # Managed/Workload Identity: the Azure SDK falls back to DefaultAzureCredential
+    # (reads the AKS-injected AZURE_CLIENT_ID/TENANT_ID/FEDERATED_TOKEN_FILE) only
+    # when BOTH identity and credential are empty. The account name lives in
+    # jclouds.endpoint above, never in the identity.
     jclouds.identity=
     jclouds.credential=
   {{- else }}
@@ -214,39 +204,22 @@ data:
   backend-google-cloud-storage.properties: |-
     {{- include "s3proxy.main.config" . | nindent 4 }}
 
-    # Google Cloud Storage backend configuration
+    # Google Cloud Storage backend configuration (google-cloud-storage provider,
+    # Google SDK).
     jclouds.provider=google-cloud-storage
   {{- if .Values.config.backends.googleCloudStorage.projectID }}
-    jclouds.project-id={{ .Values.config.backends.googleCloudStorage.projectID }}
+    # The GCS SDK store reads jclouds.identity as the GCP project id (setProjectId).
+    jclouds.identity={{ .Values.config.backends.googleCloudStorage.projectID }}
   {{- end }}
-  {{- if .Values.config.backends.googleCloudStorage.clientEmail }}
-    jclouds.identity={{ .Values.config.backends.googleCloudStorage.clientEmail }}
+  {{- if .Values.config.backends.googleCloudStorage.endpoint }}
+    jclouds.endpoint={{ .Values.config.backends.googleCloudStorage.endpoint }}
   {{- end }}
-  {{- if .Values.config.backends.googleCloudStorage.privateKey.existingSecret }}
-    # Using privateKey from mounted secret file
-    jclouds.credential=/credentials/gcs-private.key
-  {{- else if .Values.config.backends.googleCloudStorage.privateKey.value }}
-    # Private key credential will be merged from the secret properties file
-    # jclouds.credential will be provided by the secret
-  {{- end }}
+    # jclouds.credential (the full service-account JSON key) is merged in by the
+    # merge-configs initContainer from the mounted key file, so the multi-line JSON
+    # is escaped to a single properties value and kept out of the ConfigMap. With no
+    # key the SDK uses an unauthenticated client (emulator only) — S3Proxy 4.x does
+    # NOT support keyless GCS (Workload Identity/ADC); real GCS needs a static key.
   {{- range $index, $bucket := .Values.config.backends.googleCloudStorage.bucketLocators }}
-    s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
-  {{- end }}
-{{- end }}
-
-{{- if .Values.config.backends.b2.enabled }}
-  backend-b2.properties: |-
-    {{- include "s3proxy.main.config" . | nindent 4 }}
-
-    # Backblaze B2 backend configuration
-    jclouds.provider=b2
-  {{- if .Values.config.backends.b2.account }}
-    jclouds.identity={{ .Values.config.backends.b2.account }}
-  {{- end }}
-  {{- if .Values.config.backends.b2.applicationKey.value }}
-    # Credential will be merged from the secret properties file
-  {{- end }}
-  {{- range $index, $bucket := .Values.config.backends.b2.bucketLocators }}
     s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
   {{- end }}
 {{- end }}
@@ -255,42 +228,27 @@ data:
   backend-openstack-swift.properties: |-
     {{- include "s3proxy.main.config" . | nindent 4 }}
 
-    # OpenStack Swift backend configuration
+    # OpenStack Swift backend configuration (openstack-swift provider, openstack4j
+    # SDK, Keystone v3).
     jclouds.provider=openstack-swift
   {{- if .Values.config.backends.openstackSwift.authURL }}
-    jclouds.keystone.auth-url={{ .Values.config.backends.openstackSwift.authURL }}
+    jclouds.endpoint={{ .Values.config.backends.openstackSwift.authURL }}
   {{- end }}
-  {{- if .Values.config.backends.openstackSwift.region }}
-    jclouds.region={{ .Values.config.backends.openstackSwift.region }}
-  {{- end }}
-  {{- if and .Values.config.backends.openstackSwift.tenantName .Values.config.backends.openstackSwift.userName }}
-    jclouds.identity={{ printf "%s:%s" .Values.config.backends.openstackSwift.tenantName .Values.config.backends.openstackSwift.userName }}
+  {{- if .Values.config.backends.openstackSwift.userName }}
+    jclouds.identity={{ .Values.config.backends.openstackSwift.userName }}
   {{- end }}
   {{- if .Values.config.backends.openstackSwift.password.value }}
     # Credential will be merged from the secret properties file
   {{- end }}
+  {{- if .Values.config.backends.openstackSwift.projectName }}
+    openstack-swift-sdk.project-name={{ .Values.config.backends.openstackSwift.projectName }}
+  {{- end }}
+    openstack-swift-sdk.project-domain-name={{ .Values.config.backends.openstackSwift.projectDomainName | default "Default" }}
+    openstack-swift-sdk.user-domain-name={{ .Values.config.backends.openstackSwift.userDomainName | default "Default" }}
+  {{- if .Values.config.backends.openstackSwift.region }}
+    openstack-swift-sdk.region={{ .Values.config.backends.openstackSwift.region }}
+  {{- end }}
   {{- range $index, $bucket := .Values.config.backends.openstackSwift.bucketLocators }}
-    s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
-  {{- end }}
-{{- end }}
-
-{{- if .Values.config.backends.rackspaceCloudfiles.enabled }}
-  backend-rackspace-cloudfiles.properties: |-
-    {{- include "s3proxy.main.config" . | nindent 4 }}
-
-    # Rackspace Cloud Files backend configuration
-  {{- if eq .Values.config.backends.rackspaceCloudfiles.region "uk" }}
-    jclouds.provider=rackspace-cloudfiles-uk
-  {{- else }}
-    jclouds.provider=rackspace-cloudfiles-us
-  {{- end }}
-  {{- if .Values.config.backends.rackspaceCloudfiles.userName }}
-    jclouds.identity={{ .Values.config.backends.rackspaceCloudfiles.userName }}
-  {{- end }}
-  {{- if .Values.config.backends.rackspaceCloudfiles.apiKey.value }}
-    # Credential will be merged from the secret properties file
-  {{- end }}
-  {{- range $index, $bucket := .Values.config.backends.rackspaceCloudfiles.bucketLocators }}
     s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
   {{- end }}
 {{- end }}
