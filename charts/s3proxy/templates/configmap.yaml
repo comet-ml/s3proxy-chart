@@ -85,7 +85,7 @@ s3proxy.large-object-mocking=true
 {{- /* Fail fast on an Azure managed-identity config that can't authenticate, since
        the failure otherwise surfaces only at runtime as an opaque Azure SDK error. */}}
 {{- if and .Values.config.backends.azureblob.enabled .Values.config.backends.azureblob.managedIdentity }}
-  {{- if or .Values.config.backends.azureblob.key.value .Values.config.backends.azureblob.key.existingSecret .Values.config.backends.azureblob.sasToken.value }}
+  {{- if or .Values.config.backends.azureblob.key.value .Values.config.backends.azureblob.key.existingSecret .Values.config.backends.azureblob.sasToken.value .Values.config.backends.azureblob.sasToken.existingSecret }}
     {{- fail "config.backends.azureblob.managedIdentity conflicts with a static credential; a non-empty key.*/sasToken.* disables DefaultAzureCredential. Unset them." }}
   {{- end }}
   {{- if and (not .Values.config.backends.azureblob.account) (not .Values.config.backends.azureblob.endpoint) }}
