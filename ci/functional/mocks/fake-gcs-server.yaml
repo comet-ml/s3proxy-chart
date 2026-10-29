@@ -17,6 +17,9 @@ spec:
       labels:
         app: fake-gcs
     spec:
+      # The fake-gcs Service would inject FAKE_GCS_PORT=tcp://<ip>:4443, which
+      # fake-gcs-server reads as its own port setting and exits on.
+      enableServiceLinks: false
       containers:
         - name: fake-gcs
           image: fsouza/fake-gcs-server:1.56.1
