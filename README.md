@@ -1,6 +1,6 @@
 # s3proxy
 
-![Version: 0.5.0](https://img.shields.io/badge/Version-0.5.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 3.3.0](https://img.shields.io/badge/AppVersion-3.3.0-informational?style=flat-square)
+![Version: 1.0.0](https://img.shields.io/badge/Version-1.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 4.1.1](https://img.shields.io/badge/AppVersion-4.1.1-informational?style=flat-square)
 
 A Helm chart for deploying S3Proxy - Access other storage backends via the S3 API
 
@@ -18,20 +18,19 @@ A Helm chart for deploying S3Proxy - Access other storage backends via the S3 AP
 
 ## S3Proxy version compatibility
 
-The chart tracks S3Proxy (`andrewgaul/s3proxy`) through `appVersion` (currently `3.3.0`); override it with `image.tag`. Minimum supported version is `2.7.0`.
+Chart `1.x` targets **S3Proxy 4.x** (`appVersion` currently `4.1.1`; override with `image.tag`). Minimum supported version is `4.0.0`.
 
-S3Proxy `3.0.0` deprecated the Apache jclouds storage backends (`s3`, `aws-s3`, `azureblob`, `filesystem`, `transient`) in favor of SDK / NIO2 providers. Upstream has announced that `3.3.0` is the last release to bundle jclouds and that future releases "will lack its Atmos and B2 storage backends" (no jclouds-free release has shipped yet; `3.3.0` remains the latest). The jclouds providers still work on 3.x, but are deprecated:
+S3Proxy `4.0.0` removed Apache jclouds and, with it, the Atmos and B2 backends and the `-sdk` / `-nio2` provider-name variants. Each backend now has a single native/SDK implementation selected by its plain name — `filesystem`, `transient`, `aws-s3`, `azureblob`, `google-cloud-storage`, `openstack-swift` — so the chart no longer exposes the `aws:` / `nio2:` / `azureblob.provider` toggles.
 
-- `filesystem` / `transient`: already default to the non-deprecated `*-nio2` variants (`nio2: true`).
-- `azureblob`: **defaults to `provider: azureblob-sdk`** (the Azure SDK provider, which signs correctly against custom endpoints such as Azurite). The legacy jclouds `azureblob` provider is deprecated and mis-signs against custom endpoints; set `provider: azureblob` only if you specifically need it. On real Azure, `azureblob-sdk` may require `config.backends.azureblob.regions` for bucket creation. For AKS Managed/Workload Identity (no static key), set `config.backends.azureblob.managedIdentity: true` — see "Example 3b" below.
-- `s3`, `googleCloudStorage`, `openstackSwift`: SDK providers exist upstream (`aws-s3-sdk`, `google-cloud-storage-sdk`, `openstack-swift-sdk`). `rackspaceCloudfiles` is OpenStack-Swift-compatible and may be served by `openstack-swift-sdk`. Migrating the chart defaults to the SDK providers is tracked separately.
-- `b2` (and Atmos, if ever added) are jclouds-only with **no SDK successor**. These are the backends upstream has said future releases will drop.
+- **`filesystem` / `transient`** — the NIO2 implementations (no toggle).
+- **`s3`** — the `aws-s3` AWS SDK provider; serves AWS or any S3-compatible endpoint (set `endpoint`). Supports **keyless** auth: leave `accessKeyID`/`secretAccessKey` empty and set `s3.keyless: true` to use the AWS default credential chain (IRSA / EKS Pod Identity / EC2 instance profile).
+- **`azureblob`** — the Azure SDK; supports Managed/Workload Identity via `azureblob.managedIdentity: true` (no static key) — see "Example 3b".
+- **`googleCloudStorage`** — the Google SDK; a static service-account JSON key is required (`serviceAccountKey.value` / `.existingSecret`). **Keyless GCS (Workload Identity/ADC) is not supported by S3Proxy 4.x** — an empty credential selects an unauthenticated (emulator-only) client, not ADC.
+- **`openstackSwift`** — the openstack4j SDK (Keystone v3); set `projectName` and, if non-default, `projectDomainName` / `userDomainName`.
 
-### Our compatibility plan
+Removed in chart `1.x`: the `b2` and `rackspaceCloudfiles` backends (jclouds-only, dropped upstream). Rackspace Cloud Files is OpenStack-Swift-compatible — configure it via the `openstackSwift` backend.
 
-- **Through S3Proxy `3.3.0` (chart `0.x`):** all current backends, including the jclouds-only `b2`, are supported. This is where the chart sits today.
-- **Guardrail:** the chart **hard-fails at render time** if `b2` (or `atmos`) is enabled while the effective S3Proxy version (`image.tag`, else `appVersion`) is greater than `3.3.0`, so an upgrade past the jclouds sunset cannot silently ship a broken backend. Pin `image.tag` to `3.3.0` or earlier, or disable the backend.
-- **When S3Proxy ships its first jclouds-free release:** the chart moves to `1.x.x` (major bump), migrates the remaining backends to their SDK providers, and drops `b2`/`atmos`. Tracked in the SDK-migration follow-up.
+- **Guardrail:** the chart **hard-fails at render time** if the effective S3Proxy version (`image.tag`, else `appVersion`) parses as semver and is older than `4.0.0`, so it cannot render a 4.x-only config against a 3.x image. Use chart `0.x` for S3Proxy 3.x.
 
 ## Installation
 
@@ -141,7 +140,7 @@ The following section lists the configurable parameters of the s3proxy chart and
 		</tr>
 		<tr>
 			<td><code>config.backends.azureblob.enabled</code></td>
-			<td>Enable Azure Blob Storage backend</td>
+			<td>Enable Azure Blob Storage backend (provider <code>azureblob</code>, Azure SDK)</td>
 			<td><code>bool</code></td>
 			<td><code>false</code></td>
 		</tr>
@@ -177,21 +176,9 @@ The following section lists the configurable parameters of the s3proxy chart and
 		</tr>
 		<tr>
 			<td><code>config.backends.azureblob.managedIdentity</code></td>
-			<td>Use Azure Managed/Workload Identity instead of a static account key or SAS token. Requires <code>provider: azureblob-sdk</code>; mutually exclusive with <code>key.<i></code> and <code>sasToken.</i></code>. When true the chart renders both <code>jclouds.identity</code> and <code>jclouds.credential</code> empty, which makes azureblob-sdk fall back to Azure's <code>DefaultAzureCredential</code> (consuming the AKS workload-identity env <code>AZURE_CLIENT_ID</code>/<code>AZURE_TENANT_ID</code>/<code>AZURE_FEDERATED_TOKEN_FILE</code>). Set <code>account</code> (or <code>endpoint</code>) for the storage endpoint, annotate the ServiceAccount with <code>azure.workload.identity/client-id</code> (<code>serviceAccount.annotations</code>) and label the pod <code>azure.workload.identity/use: "true"</code> (<code>podLabels</code>).</td>
+			<td>Use Azure Managed/Workload Identity instead of a static account key or SAS token. Mutually exclusive with <code>key.<i></code> and <code>sasToken.</i></code>. When true the chart renders both <code>jclouds.identity</code> and <code>jclouds.credential</code> empty, which makes the Azure SDK fall back to <code>DefaultAzureCredential</code> (consuming the AKS workload-identity env <code>AZURE_CLIENT_ID</code>/<code>AZURE_TENANT_ID</code>/<code>AZURE_FEDERATED_TOKEN_FILE</code>). Set <code>account</code> (or <code>endpoint</code>) for the storage endpoint, annotate the ServiceAccount with <code>azure.workload.identity/client-id</code> (<code>serviceAccount.annotations</code>) and label the pod <code>azure.workload.identity/use: "true"</code> (<code>podLabels</code>).</td>
 			<td><code>bool</code></td>
 			<td><code>false</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.azureblob.provider</code></td>
-			<td>Provider type. Defaults to <code>azureblob-sdk</code> (Azure SDK): it signs correctly against custom endpoints (Azurite, Azure Gov/China, private endpoints) and is the non-deprecated provider on S3Proxy 3.x. The legacy jclouds <code>azureblob</code> provider is deprecated upstream and mis-signs against custom endpoints; on real Azure <code>azureblob-sdk</code> may require <code>regions</code> to be set for bucket creation.</td>
-			<td><code>string</code></td>
-			<td><code>"azureblob-sdk"</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.azureblob.regions</code></td>
-			<td>jclouds region(s) for the backend, emitted as <code>jclouds.regions=</code>. The azureblob-sdk provider requires this on real Azure to create buckets (without it <code>aws s3 mb</code> fails with InvalidLocationConstraint / "no jclouds.regions configured"). Comma-separated for multiple. Not needed against Azurite. Leave empty to omit.</td>
-			<td><code>string</code></td>
-			<td><code>""</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.azureblob.sasToken</code></td>
@@ -218,48 +205,6 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td><code>""</code></td>
 		</tr>
 		<tr>
-			<td><code>config.backends.b2.account</code></td>
-			<td>B2 account ID</td>
-			<td><code>string</code></td>
-			<td><code>""</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.b2.applicationKey</code></td>
-			<td>B2 application key configuration</td>
-			<td><code>object</code></td>
-			<td><code>{"existingSecret":"","secretKey":"applicationKey","value":""}</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.b2.applicationKey.existingSecret</code></td>
-			<td>Name of existing secret containing the application key</td>
-			<td><code>string</code></td>
-			<td><code>""</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.b2.applicationKey.secretKey</code></td>
-			<td>Key in the existing secret containing the application key</td>
-			<td><code>string</code></td>
-			<td><code>"applicationKey"</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.b2.applicationKey.value</code></td>
-			<td>Application key value</td>
-			<td><code>string</code></td>
-			<td><code>""</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.b2.bucketLocators</code></td>
-			<td>Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.</td>
-			<td><code>list</code></td>
-			<td><code>[]</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.b2.enabled</code></td>
-			<td>Enable Backblaze B2 backend</td>
-			<td><code>bool</code></td>
-			<td><code>false</code></td>
-		</tr>
-		<tr>
 			<td><code>config.backends.filesystem.basedir</code></td>
 			<td>Base directory for filesystem backend</td>
 			<td><code>string</code></td>
@@ -273,27 +218,21 @@ The following section lists the configurable parameters of the s3proxy chart and
 		</tr>
 		<tr>
 			<td><code>config.backends.filesystem.credential</code></td>
-			<td>jclouds credential. S3Proxy requires jclouds.credential in every backend properties file; the filesystem backend ignores the value. An empty value falls back to "local".</td>
+			<td>jclouds credential placeholder. S3Proxy requires jclouds.credential in every backend properties file; the filesystem backend ignores the value. An empty value falls back to "local".</td>
 			<td><code>string</code></td>
 			<td><code>"local"</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.filesystem.enabled</code></td>
-			<td>Enable filesystem backend</td>
+			<td>Enable filesystem backend (provider <code>filesystem</code>, NIO2-backed in S3Proxy 4.x)</td>
 			<td><code>bool</code></td>
 			<td><code>true</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.filesystem.identity</code></td>
-			<td>jclouds identity. S3Proxy requires jclouds.identity in every backend properties file; the filesystem backend ignores the value, so the "local" placeholder is fine. An empty value falls back to "local".</td>
+			<td>jclouds identity placeholder. S3Proxy requires jclouds.identity in every backend properties file; the filesystem backend ignores the value. An empty value falls back to "local".</td>
 			<td><code>string</code></td>
 			<td><code>"local"</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.filesystem.nio2</code></td>
-			<td>Use NIO2 implementation (filesystem-nio2) instead of standard filesystem</td>
-			<td><code>bool</code></td>
-			<td><code>true</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.googleCloudStorage.bucketLocators</code></td>
@@ -302,50 +241,50 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td><code>[]</code></td>
 		</tr>
 		<tr>
-			<td><code>config.backends.googleCloudStorage.clientEmail</code></td>
-			<td>Service account email or user email</td>
-			<td><code>string</code></td>
-			<td><code>""</code></td>
-		</tr>
-		<tr>
 			<td><code>config.backends.googleCloudStorage.enabled</code></td>
-			<td>Enable Google Cloud Storage backend</td>
+			<td>Enable Google Cloud Storage backend (provider <code>google-cloud-storage</code>, Google SDK)</td>
 			<td><code>bool</code></td>
 			<td><code>false</code></td>
 		</tr>
 		<tr>
-			<td><code>config.backends.googleCloudStorage.privateKey</code></td>
-			<td>Private key configuration</td>
-			<td><code>object</code></td>
-			<td><code>{"existingSecret":"","secretKey":"private.key","value":""}</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.googleCloudStorage.privateKey.existingSecret</code></td>
-			<td>Name of existing secret containing the private key</td>
-			<td><code>string</code></td>
-			<td><code>""</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.googleCloudStorage.privateKey.secretKey</code></td>
-			<td>Key in the existing secret containing the private key (in PEM format)</td>
-			<td><code>string</code></td>
-			<td><code>"private.key"</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.googleCloudStorage.privateKey.value</code></td>
-			<td>Private key value (in PEM format)</td>
+			<td><code>config.backends.googleCloudStorage.endpoint</code></td>
+			<td>Custom GCS endpoint (<code>jclouds.endpoint</code>), e.g. a fake-gcs-server emulator. Empty uses <code>https://storage.googleapis.com</code>. An emulator needs no <code>serviceAccountKey</code>: with no key the SDK sends unauthenticated requests.</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.googleCloudStorage.projectID</code></td>
-			<td>GCP project ID</td>
+			<td>GCP project ID, emitted as <code>jclouds.identity</code> (the GCS SDK store reads it as the project id). Optional: when empty the project is taken from the service-account key.</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.serviceAccountKey</code></td>
+			<td>Service-account key configuration. The full JSON key is passed to the GCS SDK as <code>jclouds.credential</code> (<code>ServiceAccountCredentials.fromStream</code>). NOTE: S3Proxy 4.x does NOT support keyless GCS (Workload Identity/ADC) — an empty credential selects an unauthenticated (emulator-only) client, not ADC — so a static key is required against real GCS.</td>
+			<td><code>object</code></td>
+			<td><code>{"existingSecret":"","secretKey":"key.json","value":""}</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.serviceAccountKey.existingSecret</code></td>
+			<td>Name of an existing Secret holding the service-account JSON key</td>
+			<td><code>string</code></td>
+			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.serviceAccountKey.secretKey</code></td>
+			<td>Key within the Secret that holds the JSON key</td>
+			<td><code>string</code></td>
+			<td><code>"key.json"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.googleCloudStorage.serviceAccountKey.value</code></td>
+			<td>Inline service-account JSON key content, stored in the chart-owned Secret and mounted as a file the initContainer merges into the backend properties (kept out of the ConfigMap). Used only when <code>existingSecret</code> is empty.</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.openstackSwift.authURL</code></td>
-			<td>Authentication URL</td>
+			<td>Keystone authentication URL (<code>jclouds.endpoint</code>)</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
 		</tr>
@@ -357,7 +296,7 @@ The following section lists the configurable parameters of the s3proxy chart and
 		</tr>
 		<tr>
 			<td><code>config.backends.openstackSwift.enabled</code></td>
-			<td>Enable OpenStack Swift backend</td>
+			<td>Enable OpenStack Swift backend (provider <code>openstack-swift</code>, openstack4j SDK, Keystone v3)</td>
 			<td><code>bool</code></td>
 			<td><code>false</code></td>
 		</tr>
@@ -386,82 +325,40 @@ The following section lists the configurable parameters of the s3proxy chart and
 			<td><code>""</code></td>
 		</tr>
 		<tr>
-			<td><code>config.backends.openstackSwift.region</code></td>
-			<td>Region</td>
+			<td><code>config.backends.openstackSwift.projectDomainName</code></td>
+			<td>Keystone domain that owns the project (<code>openstack-swift-sdk.project-domain-name</code>)</td>
+			<td><code>string</code></td>
+			<td><code>"Default"</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.openstackSwift.projectName</code></td>
+			<td>Keystone project (tenant) name to scope the token to (<code>openstack-swift-sdk.project-name</code>). Required: Swift is only reachable through a project-scoped token.</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
 		</tr>
 		<tr>
-			<td><code>config.backends.openstackSwift.tenantName</code></td>
-			<td>Tenant name</td>
+			<td><code>config.backends.openstackSwift.region</code></td>
+			<td>Region to select from the service catalog (<code>openstack-swift-sdk.region</code>); empty selects the first/default region</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
+		</tr>
+		<tr>
+			<td><code>config.backends.openstackSwift.userDomainName</code></td>
+			<td>Keystone domain that owns the user (<code>openstack-swift-sdk.user-domain-name</code>)</td>
+			<td><code>string</code></td>
+			<td><code>"Default"</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.openstackSwift.userName</code></td>
-			<td>Username</td>
-			<td><code>string</code></td>
-			<td><code>""</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.rackspaceCloudfiles.apiKey</code></td>
-			<td>API key configuration</td>
-			<td><code>object</code></td>
-			<td><code>{"existingSecret":"","secretKey":"apiKey","value":""}</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.rackspaceCloudfiles.apiKey.existingSecret</code></td>
-			<td>Name of existing secret containing the API key</td>
-			<td><code>string</code></td>
-			<td><code>""</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.rackspaceCloudfiles.apiKey.secretKey</code></td>
-			<td>Key in the existing secret containing the API key</td>
-			<td><code>string</code></td>
-			<td><code>"apiKey"</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.rackspaceCloudfiles.apiKey.value</code></td>
-			<td>API key value</td>
-			<td><code>string</code></td>
-			<td><code>""</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.rackspaceCloudfiles.bucketLocators</code></td>
-			<td>Buckets routed to this backend (S3Proxy bucket-locator; glob patterns supported). Only relevant when multiple backends are enabled; a bucket matching no backend's list falls through to the first-enabled backend.</td>
-			<td><code>list</code></td>
-			<td><code>[]</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.rackspaceCloudfiles.enabled</code></td>
-			<td>Enable Rackspace Cloud Files backend</td>
-			<td><code>bool</code></td>
-			<td><code>false</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.rackspaceCloudfiles.region</code></td>
-			<td>Region (uk or us)</td>
-			<td><code>string</code></td>
-			<td><code>"us"</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.rackspaceCloudfiles.userName</code></td>
-			<td>Username</td>
+			<td>Username (<code>jclouds.identity</code>)</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.s3.accessKeyID</code></td>
-			<td>S3 Access Key ID for backend</td>
+			<td>S3 Access Key ID for backend (<code>jclouds.identity</code>). Leave empty when <code>keyless: true</code>.</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.s3.aws</code></td>
-			<td>Use AWS-specific S3 provider (aws-s3) instead of generic S3 provider</td>
-			<td><code>bool</code></td>
-			<td><code>true</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.s3.bucketLocators</code></td>
@@ -471,25 +368,31 @@ The following section lists the configurable parameters of the s3proxy chart and
 		</tr>
 		<tr>
 			<td><code>config.backends.s3.enabled</code></td>
-			<td>Enable S3 backend</td>
+			<td>Enable S3 backend (provider <code>aws-s3</code>, AWS SDK; also serves S3-compatible endpoints such as MinIO/Ceph via <code>endpoint</code>)</td>
 			<td><code>bool</code></td>
 			<td><code>false</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.s3.endpoint</code></td>
-			<td>S3 endpoint</td>
+			<td>S3 endpoint (<code>jclouds.endpoint</code>) for an S3-compatible backend (MinIO, Ceph). Leave empty for AWS.</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
 		</tr>
 		<tr>
+			<td><code>config.backends.s3.keyless</code></td>
+			<td>Use ambient/keyless credentials: leave <code>accessKeyID</code>/<code>secretAccessKey</code> empty and the AWS SDK default credential chain resolves IRSA / EKS Pod Identity / EC2 instance-profile creds. Mutually exclusive with <code>accessKeyID</code>/<code>secretAccessKey.*</code>.</td>
+			<td><code>bool</code></td>
+			<td><code>false</code></td>
+		</tr>
+		<tr>
 			<td><code>config.backends.s3.region</code></td>
-			<td>AWS region</td>
+			<td>AWS region (<code>jclouds.region</code>). S3Proxy defaults to <code>us-east-1</code> when empty.</td>
 			<td><code>string</code></td>
 			<td><code>""</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.s3.secretAccessKey</code></td>
-			<td>S3 Secret Access Key configuration</td>
+			<td>S3 Secret Access Key configuration. Leave empty when <code>keyless: true</code>.</td>
 			<td><code>object</code></td>
 			<td><code>{"existingSecret":"","secretKey":"secretAccessKey","value":""}</code></td>
 		</tr>
@@ -519,27 +422,21 @@ The following section lists the configurable parameters of the s3proxy chart and
 		</tr>
 		<tr>
 			<td><code>config.backends.transient.credential</code></td>
-			<td>jclouds credential. S3Proxy requires jclouds.credential in every backend properties file; the transient backend ignores the value. An empty value falls back to "local".</td>
+			<td>jclouds credential placeholder. S3Proxy requires jclouds.credential in every backend properties file; the transient backend ignores the value. An empty value falls back to "local".</td>
 			<td><code>string</code></td>
 			<td><code>"local"</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.transient.enabled</code></td>
-			<td>Enable transient (in-memory) backend</td>
+			<td>Enable transient (in-memory) backend (provider <code>transient</code>, NIO2-backed in S3Proxy 4.x)</td>
 			<td><code>bool</code></td>
 			<td><code>false</code></td>
 		</tr>
 		<tr>
 			<td><code>config.backends.transient.identity</code></td>
-			<td>jclouds identity. S3Proxy requires jclouds.identity in every backend properties file; the transient backend ignores the value, so the "local" placeholder is fine. An empty value falls back to "local".</td>
+			<td>jclouds identity placeholder. S3Proxy requires jclouds.identity in every backend properties file; the transient backend ignores the value. An empty value falls back to "local".</td>
 			<td><code>string</code></td>
 			<td><code>"local"</code></td>
-		</tr>
-		<tr>
-			<td><code>config.backends.transient.nio2</code></td>
-			<td>Use NIO2 implementation (transient-nio2) instead of standard transient</td>
-			<td><code>bool</code></td>
-			<td><code>true</code></td>
 		</tr>
 		<tr>
 			<td><code>config.buckets.alias</code></td>
@@ -906,8 +803,6 @@ config:
   backends:
     filesystem:
       enabled: true
-      nio2: true
-    filesystem:
       basedir: "/data/s3proxy"
 
 persistence:
@@ -929,15 +824,31 @@ config:
     type: "aws-v4"
     identity: "proxy-access-key"  # For clients connecting to s3proxy
     secret: "proxy-secret-key"
-  backend:
-    provider: "aws-s3"
-    awsS3:
+  backends:
+    filesystem:
+      enabled: false
+    s3:
+      enabled: true
       region: "us-west-2"
-      accessKeyID: "aws-access-key-id"  # For s3proxy to connect to AWS
-      secretAccessKey: "aws-secret-access-key"
+      accessKeyID: "aws-access-key-id"       # For s3proxy to connect to AWS
+      secretAccessKey:
+        value: "aws-secret-access-key"
 
 persistence:
   enabled: false  # Not needed for S3 backend
+```
+
+For keyless auth on EKS (IRSA / Pod Identity) or EC2, drop the keys and set `keyless`:
+
+```yaml
+config:
+  backends:
+    filesystem:
+      enabled: false
+    s3:
+      enabled: true
+      region: "us-west-2"
+      keyless: true
 ```
 
 Install:
@@ -954,11 +865,14 @@ config:
     type: "aws-v4"
     identity: "myaccesskey"
     secret: "mysecretkey"
-  backend:
-    provider: "azureblob"
+  backends:
+    filesystem:
+      enabled: false
     azureblob:
+      enabled: true
       account: "mystorageaccount"
-      key: "storageaccountkey"
+      key:
+        value: "storageaccountkey"
 
 persistence:
   enabled: false  # Not needed for Azure backend
@@ -986,7 +900,6 @@ config:
       enabled: false
     azureblob:
       enabled: true
-      provider: "azureblob-sdk"   # required: the legacy jclouds provider can't do token auth
       managedIdentity: true
       account: "mystorageaccount" # used for the endpoint; NOT emitted as jclouds.identity
       # endpoint: "https://mystorageaccount.blob.core.windows.net"  # or set explicitly
@@ -1005,6 +918,9 @@ persistence:
 
 ### Example 4: Google Cloud Storage Backend
 
+The GCS SDK reads the credential as a full service-account JSON key. A static key
+is required — S3Proxy 4.x does not support keyless GCS (Workload Identity/ADC).
+
 ```yaml
 # values-gcs.yaml
 config:
@@ -1012,15 +928,21 @@ config:
     type: "aws-v4"
     identity: "myaccesskey"
     secret: "mysecretkey"
-  backend:
-    provider: "google-cloud-storage"
+  backends:
+    filesystem:
+      enabled: false
     googleCloudStorage:
+      enabled: true
       projectID: "my-project"
-      clientEmail: "service-account@my-project.iam.gserviceaccount.com"
-      privateKey: |
-        -----BEGIN RSA PRIVATE KEY-----
-        ...
-        -----END RSA PRIVATE KEY-----
+      serviceAccountKey:
+        # The full service-account JSON key (or use existingSecret / secretKey).
+        value: |
+          {
+            "type": "service_account",
+            "project_id": "my-project",
+            "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
+            "client_email": "service-account@my-project.iam.gserviceaccount.com"
+          }
 
 persistence:
   enabled: false  # Not needed for GCS backend
@@ -1035,8 +957,7 @@ config:
     type: "none"
   backends:
     transient:
-      enabled: true
-      nio2: true  # In-memory storage
+      enabled: true  # In-memory storage
 
 persistence:
   enabled: false
