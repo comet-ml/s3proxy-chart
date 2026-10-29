@@ -1,0 +1,22 @@
+# Functional-test values: Google Cloud Storage backend pointed at the in-cluster
+# fake-gcs-server mock (ci/functional/mocks/fake-gcs-server.yaml -> Service
+# "fake-gcs:4443"). No service-account key: with an empty credential the GCS SDK
+# sends unauthenticated requests, which the emulator accepts.
+config:
+  auth:
+    type: aws-v4
+    identity: test-access-key
+    secret: test-secret-key
+  backends:
+    filesystem:
+      enabled: false
+    googleCloudStorage:
+      enabled: true
+      projectID: test-project
+      endpoint: http://fake-gcs:4443
+persistence:
+  enabled: false
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi

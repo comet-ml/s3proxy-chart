@@ -14,6 +14,9 @@ name: Functional Test (kind)
 #                              jclouds.endpoint (provider-agnostic).
 #   azureblob-existing-secret -> Azurite mock, account key delivered via a
 #                              pre-created Secret (key.existingSecret path, GH #34).
+#   gcs                     -> fake-gcs-server mock through googleCloudStorage.endpoint,
+#                              full round-trip. No key: the emulator accepts the
+#                              unauthenticated requests the GCS SDK sends without one.
 #   multi-backend           -> s3 (MinIO) + azureblob (Azurite) + filesystem (PVC)
 #                              in ONE release, with per-backend bucket-locator
 #                              routing. assert-routing.sh writes one bucket per
@@ -25,9 +28,9 @@ name: Functional Test (kind)
 #                              generated and stored in a Secret; s3proxy is installed
 #                              with config.tls (existingSecret path) over filesystem,
 #                              then the smoke test round-trips over HTTPS.
-# gcs/openstack-swift are render-only (covered by lint-render + helm-diff): gcs needs
-# a real service-account JSON key (S3Proxy 4.x has no keyless GCS), and swift has no
-# lightweight in-cluster emulator.
+# openstack-swift is render-only (lint-render + helm-diff); an openstackswift/saio leg
+# is possible but not added yet. Auth paths no emulator verifies stay render-only too:
+# the GCS service-account key, Azure managed identity and SAS, and S3 keyless.
 
 on:
   pull_request:
@@ -68,6 +71,9 @@ jobs:
             values: ci/functional/values/azureblob-existing-secret.yaml
             mock: ci/functional/mocks/azurite.yaml
             azureKeySecret: true
+          - backend: gcs
+            values: ci/functional/values/gcs.yaml
+            mock: ci/functional/mocks/fake-gcs-server.yaml
           - backend: multi-backend
             values: ci/functional/values/multi-backend.yaml
             mock: ci/functional/mocks/minio.yaml ci/functional/mocks/azurite.yaml

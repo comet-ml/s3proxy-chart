@@ -211,6 +211,9 @@ data:
     # The GCS SDK store reads jclouds.identity as the GCP project id (setProjectId).
     jclouds.identity={{ .Values.config.backends.googleCloudStorage.projectID }}
   {{- end }}
+  {{- if .Values.config.backends.googleCloudStorage.endpoint }}
+    jclouds.endpoint={{ .Values.config.backends.googleCloudStorage.endpoint }}
+  {{- end }}
     # jclouds.credential (the full service-account JSON key) is merged in by the
     # merge-configs initContainer from the mounted key file, so the multi-line JSON
     # is escaped to a single properties value and kept out of the ConfigMap. With no

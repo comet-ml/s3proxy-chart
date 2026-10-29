@@ -265,6 +265,8 @@ config:
       enabled: false
       # -- GCP project ID, emitted as `jclouds.identity` (the GCS SDK store reads it as the project id). Optional: when empty the project is taken from the service-account key.
       projectID: ""
+      # -- Custom GCS endpoint (`jclouds.endpoint`), e.g. a fake-gcs-server emulator. Empty uses `https://storage.googleapis.com`. An emulator needs no `serviceAccountKey`: with no key the SDK sends unauthenticated requests.
+      endpoint: ""
       # -- Service-account key configuration. The full JSON key is passed to the GCS SDK as `jclouds.credential` (`ServiceAccountCredentials.fromStream`). NOTE: S3Proxy 4.x does NOT support keyless GCS (Workload Identity/ADC) — an empty credential selects an unauthenticated (emulator-only) client, not ADC — so a static key is required against real GCS.
       serviceAccountKey:
         # -- (string) Inline service-account JSON key content, stored in the chart-owned Secret and mounted as a file the initContainer merges into the backend properties (kept out of the ConfigMap). Used only when `existingSecret` is empty.
