@@ -14,6 +14,12 @@ name: Functional Test (kind)
 #                              jclouds.endpoint (provider-agnostic).
 #   azureblob-existing-secret -> Azurite mock, account key delivered via a
 #                              pre-created Secret (key.existingSecret path, GH #34).
+#   azureblob-managed-identity -> keyless Azure: managedIdentity renders empty
+#                              identity/credential, so the Azure SDK's
+#                              DefaultAzureCredential fetches a token from a stub
+#                              managed-identity endpoint and S3Proxy presents it to
+#                              Azurite (--oauth basic, HTTPS). Azurite rejects
+#                              anonymous requests, so only the token path passes.
 #   gcs                     -> fake-gcs-server mock through googleCloudStorage.endpoint,
 #                              full round-trip. No key: the emulator accepts the
 #                              unauthenticated requests the GCS SDK sends without one.
@@ -30,7 +36,7 @@ name: Functional Test (kind)
 #                              then the smoke test round-trips over HTTPS.
 # openstack-swift is render-only (lint-render + helm-diff); an openstackswift/saio leg
 # is possible but not added yet. Auth paths no emulator verifies stay render-only too:
-# the GCS service-account key, Azure managed identity and SAS, and S3 keyless.
+# the GCS service-account key, Azure SAS, and S3 keyless.
 
 on:
   pull_request:
@@ -71,6 +77,10 @@ jobs:
             values: ci/functional/values/azureblob-existing-secret.yaml
             mock: ci/functional/mocks/azurite.yaml
             azureKeySecret: true
+          - backend: azureblob-managed-identity
+            values: ci/functional/values/azureblob-managed-identity.yaml
+            mock: ci/functional/mocks/azurite-oauth.yaml ci/functional/mocks/azure-token-stub.yaml
+            azuriteOAuth: true
           - backend: gcs
             values: ci/functional/values/gcs.yaml
             mock: ci/functional/mocks/fake-gcs-server.yaml
@@ -119,6 +129,23 @@ jobs:
           kubectl -n "${NAMESPACE}" create secret generic s3proxy-tls \
             --from-file=keystore.p12=/tmp/keystore.p12 \
             --from-literal=keystore-password=changeit
+
+      - name: Generate Azurite TLS and S3Proxy truststore Secrets (managed-identity leg)
+        if: matrix.azuriteOAuth
+        # Azurite serves bearer-token auth over HTTPS only, and the Azure SDK sends
+        # tokens over HTTPS only, so Azurite gets a self-signed cert for its Service
+        # name and the S3Proxy JVM trusts it through a PKCS12 truststore.
+        run: |
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+            -keyout /tmp/azurite.key -out /tmp/azurite.crt \
+            -subj "/CN=azurite" -addext "subjectAltName=DNS:azurite"
+          "${JAVA_HOME}/bin/keytool" -importcert -noprompt -alias azurite \
+            -file /tmp/azurite.crt -keystore /tmp/truststore \
+            -storetype PKCS12 -storepass changeit
+          kubectl -n "${NAMESPACE}" create secret tls azurite-tls \
+            --cert=/tmp/azurite.crt --key=/tmp/azurite.key
+          kubectl -n "${NAMESPACE}" create secret generic s3proxy-truststore \
+            --from-file=truststore=/tmp/truststore
 
       - name: Create client auth Secret (auth existingSecret leg)
         if: matrix.authSecret
@@ -177,4 +204,5 @@ jobs:
           kubectl -n "${NAMESPACE}" get all || true
           kubectl -n "${NAMESPACE}" describe pods || true
           kubectl -n "${NAMESPACE}" logs -l app.kubernetes.io/name=s3proxy --all-containers --tail=300 || true
+          kubectl -n "${NAMESPACE}" logs -l app --all-containers --prefix --tail=100 || true
           kubectl -n "${NAMESPACE}" get events --sort-by=.lastTimestamp || true
