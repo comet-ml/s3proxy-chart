@@ -19,7 +19,7 @@ configMergeImage:
   # -- Config merge container image pull policy
   pullPolicy: IfNotPresent
   # -- Config merge container image tag
-  tag: "1.36"
+  tag: "1.38"
 
 # -- Image pull secrets
 imagePullSecrets: []
