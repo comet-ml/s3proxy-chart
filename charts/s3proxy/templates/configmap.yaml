@@ -99,6 +99,15 @@ s3proxy.large-object-mocking=true
     {{- fail "config.backends.s3.keyless conflicts with a static credential; a non-empty accessKeyID/secretAccessKey.* disables the AWS default credential chain. Unset them." }}
   {{- end }}
 {{- end }}
+{{- /* Keyless GCS: before 4.1.2 S3Proxy sends Google's endpoint unauthenticated
+       requests instead of using application default credentials, so a Workload
+       Identity setup would otherwise fail only at runtime, as AccessDenied. */}}
+{{- $gcs := .Values.config.backends.googleCloudStorage }}
+{{- if and $gcs.enabled (not $gcs.endpoint) (not $gcs.serviceAccountKey.value) (not $gcs.serviceAccountKey.existingSecret) (regexMatch "^v?[0-9]+\\.[0-9]+\\.[0-9]+" $s3pVersion) }}
+  {{- if semverCompare "< 4.1.2" (trimPrefix "v" $s3pVersion) }}
+    {{- fail (printf "config.backends.googleCloudStorage has no serviceAccountKey, so it relies on Workload Identity/ADC, which needs S3Proxy >= 4.1.2; the effective S3Proxy version is %s. Bump image.tag, or set serviceAccountKey." $s3pVersion) }}
+  {{- end }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -217,8 +226,8 @@ data:
     # jclouds.credential (the full service-account JSON key) is merged in by the
     # merge-configs initContainer from the mounted key file, so the multi-line JSON
     # is escaped to a single properties value and kept out of the ConfigMap. With no
-    # key the SDK uses an unauthenticated client (emulator only) — S3Proxy 4.x does
-    # NOT support keyless GCS (Workload Identity/ADC); real GCS needs a static key.
+    # key the SDK uses application default credentials (Workload Identity) against
+    # Google's endpoints, and none against an emulator.
   {{- range $index, $bucket := .Values.config.backends.googleCloudStorage.bucketLocators }}
     s3proxy.bucket-locator.{{ add $index 1 }}={{ $bucket }}
   {{- end }}
