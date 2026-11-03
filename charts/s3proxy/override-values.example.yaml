@@ -110,11 +110,11 @@ config:
       # leave key/sasToken empty (see README "Example 3b").
       # managedIdentity: true
 
-    # Google Cloud Storage backend (Google SDK). A static service-account JSON key is
-    # required; S3Proxy 4.x does not support keyless GCS (Workload Identity/ADC).
+    # Google Cloud Storage backend (Google SDK). A service-account JSON key, or no key
+    # for Workload Identity (S3Proxy >= 4.1.2; see README "Example 4b").
     googleCloudStorage:
       enabled: false  # Set to true to use GCS backend
-      projectID: "my-project"  # Optional; otherwise taken from the key
+      projectID: "my-project"  # Optional with a key; set it for Workload Identity
       serviceAccountKey:
         # Option 1: the full service-account JSON key inline
         # value: |
