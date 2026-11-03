@@ -102,7 +102,7 @@ jobs:
         run: helm dependency build charts/s3proxy
 
       - name: Run chart-releaser
-        uses: bitdeps/helm-oci-charts-releaser@v0.1.3
+        uses: bitdeps/helm-oci-charts-releaser@v0.1.5
         with:
           oci_registry: ghcr.io/comet-ml
           tag_name_pattern: ''
