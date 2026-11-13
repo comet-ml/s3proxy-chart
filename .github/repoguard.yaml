@@ -1,0 +1,4 @@
+waivers:
+  - check: no-hardcoded-keys
+    reason: "Not a credential: truncated placeholder private key in the GCS service-account examples (README, override-values example, test-values)"
+    findings: [sha256:3021d90eb943]
