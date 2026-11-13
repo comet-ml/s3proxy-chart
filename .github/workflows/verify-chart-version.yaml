@@ -12,6 +12,9 @@ on:
     # status"). Instead the job always runs and no-ops (passes) when the chart is
     # not modified — see the "Detect chart changes" step below.
 
+permissions:
+  contents: read
+
 jobs:
   verify-version:
     runs-on: ubuntu-latest
