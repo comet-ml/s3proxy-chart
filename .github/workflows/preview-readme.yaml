@@ -27,7 +27,7 @@ jobs:
       contents: read
       pull-requests: write  # post/minimize the preview comment
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
@@ -37,7 +37,7 @@ jobs:
           echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
       - name: Render helm docs inside the README.md
-        uses: losisin/helm-docs-github-action@v2
+        uses: losisin/helm-docs-github-action@9e0787c426fdec38be6288bb5c0559dcb388412c # v2
         with:
           git-push: false
           output-file: ../../README.md
@@ -63,7 +63,7 @@ jobs:
 
       - name: Find and hide outdated comments
         if: steps.check-changes.outputs.has_changes == 'true'
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -93,7 +93,7 @@ jobs:
 
       - name: Post README changes as comment
         if: steps.check-changes.outputs.has_changes == 'true'
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         env:
           DIFF_CONTENT: ${{ steps.diff.outputs.diff }}
         with:
@@ -128,7 +128,7 @@ jobs:
 
       - name: Hide outdated comments when no changes
         if: steps.check-changes.outputs.has_changes == 'false'
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

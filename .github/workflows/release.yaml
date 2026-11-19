@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -28,7 +28,7 @@ jobs:
           echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
       - name: Render helm docs inside the README.md and push changes back to PR branch
-        uses: losisin/helm-docs-github-action@v2
+        uses: losisin/helm-docs-github-action@9e0787c426fdec38be6288bb5c0559dcb388412c # v2
         with:
           output-file: ../../README.md
           template-files: README.md.gotmpl
@@ -68,7 +68,7 @@ jobs:
 
       - name: Push changes
         if: success()
-        uses: ad-m/github-push-action@master
+        uses: ad-m/github-push-action@7fba72704ad2db819788db8f2d9e7d1dfbebe089 # master
         with:
           github_token: ${{ steps.app-token.outputs.token }}
           branch: main
@@ -82,7 +82,7 @@ jobs:
       packages: write  # push chart to ghcr.io
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -108,7 +108,7 @@ jobs:
         run: helm dependency build charts/s3proxy
 
       - name: Run chart-releaser
-        uses: bitdeps/helm-oci-charts-releaser@v0.1.5
+        uses: bitdeps/helm-oci-charts-releaser@caedceea2a5ab997c7e5469a999811dbb3d5b070 # v0.1.5
         with:
           oci_registry: ghcr.io/comet-ml
           tag_name_pattern: ''
