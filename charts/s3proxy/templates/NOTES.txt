@@ -94,7 +94,7 @@
 {{- else if .Values.config.backends.azureblob.enabled }}
    - Make sure to configure Azure Blob backend credentials (or set azureblob.managedIdentity: true)
 {{- else if .Values.config.backends.googleCloudStorage.enabled }}
-   - Make sure to configure Google Cloud Storage backend credentials
+   - Make sure to configure Google Cloud Storage backend credentials (or leave serviceAccountKey empty for Workload Identity)
 {{- else if .Values.config.backends.openstackSwift.enabled }}
    - Make sure to configure OpenStack Swift backend credentials
 {{- end }}
